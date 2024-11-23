@@ -71,7 +71,7 @@ end
 
 function M.align_view()
     local pos = M.cur_slide_ln()
-    vim.fn.winrestview({ topline = pos[2] })
+    vim.fn.winrestview({ topline = pos })
 end
 
 local function fire_slide_event()
