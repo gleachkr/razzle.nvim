@@ -29,9 +29,7 @@ end
 
 vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
     callback = M.restrict_cursor_movement,
-    -- this makes it one presentation/buffer at a time. 
-    -- Could be generalized to support several
-    -- best approach would be storing scrollbounds in a buffer local var
+    buffer = 0,
     group = vim.api.nvim_create_augroup("RazzleLock", { clear = true }),
 })
 

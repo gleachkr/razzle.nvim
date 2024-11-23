@@ -1,10 +1,10 @@
 local M = {}
 
-function M.next_slide_pos()
+function M.next_slide_ln()
     return vim.fn.search("SLIDE","n")
 end
 
-function M.prev_slide_pos()
+function M.prev_slide_ln()
     local pos = vim.fn.getpos('.')
     --This search jumps to the current slide marker
     vim.fn.search("SLIDE", "bc")
@@ -14,26 +14,36 @@ function M.prev_slide_pos()
     return slide_line_number
 end
 
-function M.cur_slide_pos()
+function M.cur_slide_ln()
     return vim.fn.search("SLIDE", "bcn")
 end
 
+function M.end_slide_ln()
+    return vim.fn.search("FIN", "cn")
+end
+
+function M.slide_height()
+    return M.end_slide_ln() - M.cur_slide_ln()
+end
+
 function M.next_slide()
-    local pos = M.next_slide_pos()
-    vim.fn.winrestview({
-        topline = pos,
-        lnum = pos,
-        col = 0,
-    })
+    local pos = M.next_slide_ln()
+    vim.fn.setpos('.', { 0, pos, 0, 0 })
 end
 
 function M.prev_slide()
-    local pos = M.prev_slide_pos()
-    vim.fn.winrestview({
-        topline = pos,
-        lnum = pos,
-        col = 0,
-    })
+    local pos = M.prev_slide_ln()
+    vim.fn.setpos('.', { 0, pos, 0, 0 })
+end
+
+function M.cur_slide()
+    local pos = M.cur_slide_ln()
+    vim.fn.setpos('.', { 0, pos, 0, 0 })
+end
+
+function M.align_view()
+    local pos = vim.fn.getpos('.')
+    vim.fn.winrestview({ topline = pos[2] })
 end
 
 local function fire_slide_event()
@@ -42,18 +52,32 @@ local function fire_slide_event()
     end
 end
 
+
 function M.start_presentation()
+
     vim.cmd.doautocmd("User RazzleStart")
+    local razzle_slide_group = vim.api.nvim_create_augroup("RazzleSlide", { clear = true })
     vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
         callback = fire_slide_event,
-        group = vim.api.nvim_create_augroup("RazzleSlide", { clear = true }),
+        group = razzle_slide_group,
         buffer = 0,
     })
+
+    M.cur_slide()
 end
 
 function M.end_presentation()
     vim.cmd.doautocmd("User RazzleEnd")
-    -- CLEAN UP AUCMDS
+    local all_autocmds = vim.api.nvim_get_autocmds({
+        buffer=0, ---note, this requires that all razzle groups have buffer=0 set
+    })
+    for _, cmd in ipairs(all_autocmds) do
+        if cmd.group_name then
+            -- if there's more than one command in the group, we accidentally try to delete it twice.
+            -- this is a workaround, we should deduplicate the list instead.
+            pcall(vim.api.nvim_del_augroup_by_name,cmd.group_name)
+        end
+    end
 end
 
 return M
