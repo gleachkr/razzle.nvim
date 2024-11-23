@@ -22,8 +22,36 @@ function M.end_slide_ln()
     return vim.fn.search("FIN", "cn")
 end
 
+local function count_virtual_lines(bufnr, start_line, end_line)
+    -- Convert to 0-based indices
+    local start_pos = {start_line - 1, 0}
+    local end_pos = {end_line - 1, -1}
+    local total_virt_lines = 0
+
+    -- Get all extmarks in range
+    local marks = vim.api.nvim_buf_get_extmarks(
+        bufnr,
+        -1,  -- Use any namespace
+        start_pos,
+        end_pos,
+        {details = true}
+    )
+
+    -- Loop through marks and count virtual lines
+    for _, mark in ipairs(marks) do
+        local details = mark[4]
+        if details.virt_lines then
+            total_virt_lines = total_virt_lines + #details.virt_lines
+        end
+    end
+    return total_virt_lines
+end
+
 function M.slide_height()
-    return M.end_slide_ln() - M.cur_slide_ln()
+    local top = M.cur_slide_ln()
+    local bot = M.end_slide_ln()
+    local virt = count_virtual_lines(0,top,bot)
+    return (bot - top) + virt
 end
 
 function M.next_slide()
@@ -42,7 +70,7 @@ function M.cur_slide()
 end
 
 function M.align_view()
-    local pos = vim.fn.getpos('.')
+    local pos = M.cur_slide_ln()
     vim.fn.winrestview({ topline = pos[2] })
 end
 
@@ -51,7 +79,6 @@ local function fire_slide_event()
         vim.cmd.doautocmd("User RazzleSlide")
     end
 end
-
 
 function M.start_presentation()
 
