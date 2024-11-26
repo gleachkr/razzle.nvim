@@ -1,3 +1,5 @@
+---Module for dynamically updating zen_mode layouts
+---@class RazzleZen
 local M = {}
 
 local zen = require("zen-mode.view")
