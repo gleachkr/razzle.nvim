@@ -13,8 +13,14 @@ function M.set_layout(w, h)
         local cfg = vim.api.nvim_win_get_config(zen.win)
         local wcol = type(cfg.col) == "number" and cfg.col or cfg.col[false]
         local wrow = type(cfg.row) == "number" and cfg.row or cfg.row[false]
-        if wrow ~= row or wcol ~= col then
-            vim.api.nvim_win_set_config(zen.win, { width = width, height = height, col = col, row = row, relative = "editor" })
+        if wrow ~= row or wcol ~= col or w or h then
+            vim.api.nvim_win_set_config(zen.win, {
+                width = width,
+                height = height,
+                col = col,
+                row = row,
+                relative = "editor"
+            })
         end
     end
 end

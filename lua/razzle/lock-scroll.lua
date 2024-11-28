@@ -5,10 +5,10 @@ local M = {}
 ---Restrict cursor movement within the bounds set in the buffer.
 ---@return nil
 function M.restrict_cursor_movement()
-    if not vim.b.razzle_scroll_bounds then return nil end
+    if not vim.w.razzle_scroll_bounds then return nil end
     local current_line = vim.fn.line(".")
-    local lower_bound = vim.b.razzle_scroll_bounds[1]
-    local upper_bound = vim.b.razzle_scroll_bounds[2]
+    local lower_bound = vim.w.razzle_scroll_bounds[1]
+    local upper_bound = vim.w.razzle_scroll_bounds[2]
 
     -- Ensure that the lower bound is the top visible line
     vim.fn.winrestview({ topline = lower_bound })
@@ -24,21 +24,21 @@ end
 ---@return nil
 function M.lock_scroll()
     -- Set scroll bounds
-    vim.b.razzle_scroll_bounds = { vim.fn.line("w0"), vim.fn.line("w$") }
+    vim.w.razzle_scroll_bounds = { vim.fn.line("w0"), vim.fn.line("w$") }
+    -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
+    vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
+        callback = M.restrict_cursor_movement,
+        buffer = 0,
+        group = vim.api.nvim_create_augroup("RazzleLock", { clear = true }),
+    })
 end
 
 ---Unlock the scroll by unsetting the bounds.
 ---@return nil
 function M.unlock_scroll()
     -- Unset scroll bounds
-    vim.b.razzle_scroll_bounds = nil
+    vim.w.razzle_scroll_bounds = nil
 end
 
--- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
-vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
-    callback = M.restrict_cursor_movement,
-    buffer = 0,
-    group = vim.api.nvim_create_augroup("RazzleLock", { clear = true }),
-})
 
 return M

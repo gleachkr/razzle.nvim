@@ -18,16 +18,26 @@ function M.prev_slide_ln()
     return slide_line_number  -- Return the line number of the previous slide
 end
 
+---Calculates the end of the previous slide
+---@return number prev_end The line number of the end of the previous slide, or 0 if not found
+function M.prev_slide_end_ln()
+    return vim.fn.search("FIN", "bnW")  -- Search for the previous end marker
+end
+
 ---Calculates the start of the current slide
----@return number cur_start  The line number of the current slide found, or 0 if not found.
+---@return number cur_start  The line number of the current slide, or 0 if not found.
 function M.cur_slide_ln()
     return vim.fn.search("SLIDE", "bcn")  -- Search for the current slide marker
 end
 
 ---Calculates the end of the current slide
----@return number cur_end  The line number of the end marker of the current slide found, or 0 if not found.
+---@return number cur_end  The line number of the end of the current slide, or of the buffer if not found
 function M.end_slide_ln()
-    return vim.fn.search("FIN", "cn")  -- Search for the end marker of the current slide
+    local slide_end = vim.fn.search("FIN", "cnW") -- Search for the end of the current slide
+    if slide_end < 1 then
+        slide_end = vim.api.nvim_buf_line_count(0)
+    end
+    return slide_end
 end
 
 ---Counts the number of virtual lines in a specified range of a buffer.
@@ -60,8 +70,8 @@ local function count_virtual_lines(bufnr, start_line, end_line)
     return total_virt_lines
 end
 
----Calculates the height of the current slide.
----@return number height The height of the current slide, including virtual lines.
+---Calculates the height of the current slide's interior
+---@return number height The height of the current slide's interior, including virtual lines.
 function M.slide_height()
     -- Get the line number of the top of the current slide
     local top = M.cur_slide_ln()
@@ -70,67 +80,77 @@ function M.slide_height()
     -- Count the number of virtual lines between the top and bottom of the slide
     local virt = count_virtual_lines(0, top, bot)
     -- Return the total height of the slide, including virtual lines
-    return (bot - top) + virt
+    return (bot - top) + virt - 1
 end
 
 
----Moves to the top of the next slide in the presentation.
+---Moves to the top of the next slide's interior
 ---@return nil
 function M.next_slide()
     -- Get the line number of the next slide
     local pos = M.next_slide_ln()
     -- Set the cursor position to the next slide
-    vim.fn.setpos('.', { 0, pos, 0, 0 })
+    vim.fn.setpos('.', { 0, pos + 1, 0, 0 })
 end
 
----Moves to the top of the previous slide in the presentation.
+---Moves to the top of the previous slide's interior
 ---@return nil
 function M.prev_slide()
     -- Get the line number of the previous slide
     local pos = M.prev_slide_ln()
     -- Set the cursor position to the previous slide's line
-    vim.fn.setpos('.', { 0, pos, 0, 0 })
+    vim.fn.setpos('.', { 0, pos + 1, 0, 0 })
 end
 
 
----Moves to top of the current slide in the presentation.
+---Moves to top of the current slide's interior
 ---@return nil
 function M.cur_slide()
     -- Get the line number of the current slide
     local pos = M.cur_slide_ln() -- pos: number
     -- Set the cursor position to the current slide's line
-    vim.fn.setpos('.', { 0, pos, 0, 0 }) -- Set cursor position in the current buffer
+    vim.fn.setpos('.', { 0, pos + 1, 0, 0 }) -- Set cursor position in the current buffer
 end
 
----Aligns the view to the current slide.
+---Aligns the view to the current slide's interior.
 ---@return nil
 function M.align_view()
-    local pos = M.cur_slide_ln() -- pos: number, the line number of the current slide
-    -- Restore the window view to the specified line number
-    vim.fn.winrestview({ topline = pos }) -- Adjusts the window view to the specified line
+    local top = M.cur_slide_ln() -- the line number of the current slide
+    local bot = M.end_slide_ln() -- end number, the line number of the end of the current slide
+    local pos = vim.fn.getpos('.')
+    if pos[2] <= top then pos[2] = top + 1 end -- Adjust pos to make sure we're in the slide interior
+    if pos[2] >= bot then pos[2] = bot - 1 end
+    vim.fn.setpos('.', pos)
+    vim.fn.winrestview({ topline = top + 1 }) -- Adjusts the window view to the specified line
 end
 
----Fires a slide event if the current word is "SLIDE".
+---Fires a slide changed event if the slide has changed
 ---@return nil
 local function fire_slide_event()
-    if vim.fn.expand("<cword>") == "SLIDE" then -- Check if the current word is "SLIDE"
-        vim.cmd.doautocmd("User RazzleSlide") -- Trigger the User RazzleSlide event
+    local cur = M.cur_slide_ln()
+    local prev_end = M.prev_slide_end_ln()
+    if  vim.w.razzle_active_slide
+    and vim.w.razzle_active_slide ~= cur -- Check if current slide is not the active one
+    and prev_end < cur -- Ensure previous slide ends before what we think is the current slide begins
+    then
+        vim.w.razzle_active_slide = M.cur_slide_ln()
+        vim.cmd.doautocmd("User RazzleSlideChanged") -- Trigger the User RazzleSlideChanged
     end
 end
 
 ---Starts the presentation by setting up autocmds and triggering the start event.
----Moves to the start of the current slide, triggering a RazzleSlide event
 ---@return nil
 function M.start_presentation()
-    vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event
     local razzle_slide_group = vim.api.nvim_create_augroup("RazzleSlide", { clear = true }) -- Create a new autocommand group
     vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
         callback = fire_slide_event, -- Set the callback function for the autocmd
         group = razzle_slide_group, -- Assign the autocmd to the created group
         buffer = 0, -- Apply to the current buffer
     })
-
-    M.cur_slide() -- Move to the start of the current slide, triggering a RazzleSlide event
+    local pos = M.cur_slide_ln()
+    vim.fn.setpos('.', { 0, pos, 0, 0 }) -- Set cursor position in the current buffer
+    vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event
+    vim.w.razzle_active_slide = pos -- Set the current slide as the active slide
 end
 
 ---Ends the presentation by cleaning up autocmds and triggering the end event.
@@ -147,6 +167,7 @@ function M.end_presentation()
             pcall(vim.api.nvim_del_augroup_by_name,cmd.group_name) -- Safely delete the autocommand group
         end
     end
+    vim.w.razzle_active_slide = nil -- Clear the active slide
 end
 
 return M
