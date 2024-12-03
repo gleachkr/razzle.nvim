@@ -10,8 +10,12 @@ end
 ---@return number prev_start The line number of the previous slide found, or 0 if not found.
 function M.prev_slide_ln()
     local pos = vim.fn.getpos('.')  -- Store the current cursor position
-    -- This search jumps to the current slide marker
-    vim.fn.search("SLIDE", "bc")
+    local line = vim.api.nvim_get_current_line()
+    if not line:find("SLIDE") then
+        -- This search finds the current slide marker, if we're not already
+        -- on it
+        vim.fn.search("SLIDE", "bc")
+    end
     -- and this finds the one before that
     local slide_line_number = vim.fn.search("SLIDE", "bn")
     vim.fn.setpos('.', pos)  -- Restore the cursor position
@@ -27,7 +31,14 @@ end
 ---Calculates the start of the current slide
 ---@return number cur_start  The line number of the current slide, or 0 if not found.
 function M.cur_slide_ln()
-    return vim.fn.search("SLIDE", "bcn")  -- Search for the current slide marker
+    local pos = vim.fn.getpos('.')  -- Store the current cursor position
+    local line = vim.api.nvim_get_current_line()
+    -- This search finds the current slide marker
+    if line:find("SLIDE") then 
+        return pos[2]
+    else 
+        return vim.fn.search("SLIDE", "bcn")
+    end
 end
 
 ---Calculates the end of the current slide
