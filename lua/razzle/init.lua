@@ -1,54 +1,51 @@
 local M = {}
 
 ---Calculates the start of the next slide
----@return number next_start The line number of the next slide found, or 0 if not found.
+---@return number next_start The line number of the next slide found, or end of buffer if not found.
 function M.next_slide_ln()
-    return vim.fn.search("SLIDE", "n")
+    return vim.fn.search("SLIDE", "n") or vim.api.nvim_buf_line_count(0)
 end
 
 ---Calculates the start of the previous slide
----@return number prev_start The line number of the previous slide found, or 0 if not found.
+---@return number prev_start The line number of the previous slide found, or 1 if not found.
 function M.prev_slide_ln()
     local pos = vim.fn.getpos('.')  -- Store the current cursor position
     local line = vim.api.nvim_get_current_line()
     if not line:find("SLIDE") then
         -- This search finds the current slide marker, if we're not already
         -- on it
-        vim.fn.search("SLIDE", "bc")
+        vim.fn.search("SLIDE", "bcW")
     end
     -- and this finds the one before that
-    local slide_line_number = vim.fn.search("SLIDE", "bn")
+    local slide_line_number = vim.fn.search("SLIDE", "bnW")
     vim.fn.setpos('.', pos)  -- Restore the cursor position
-    return slide_line_number  -- Return the line number of the previous slide
+    return slide_line_number or 1  -- Return the line number of the previous slide
 end
 
 ---Calculates the end of the previous slide
----@return number prev_end The line number of the end of the previous slide, or 0 if not found
+---@return number prev_end The line number of the end of the previous slide, or 1 if not found
 function M.prev_slide_end_ln()
-    return vim.fn.search("FIN", "bnW")  -- Search for the previous end marker
+    return vim.fn.search("FIN", "bnW") or 1  -- Search for the previous end marker
 end
 
 ---Calculates the start of the current slide
----@return number cur_start  The line number of the current slide, or 0 if not found.
+---@return number cur_start  The line number of the current slide, or 1 if not found.
 function M.cur_slide_ln()
     local pos = vim.fn.getpos('.')  -- Store the current cursor position
     local line = vim.api.nvim_get_current_line()
     -- This search finds the current slide marker
-    if line:find("SLIDE") then 
+    if line:find("SLIDE") then
         return pos[2]
-    else 
-        return vim.fn.search("SLIDE", "bcn")
+    else
+        return vim.fn.search("SLIDE", "bcnW") or 1
     end
 end
 
 ---Calculates the end of the current slide
 ---@return number cur_end  The line number of the end of the current slide, or of the buffer if not found
 function M.cur_slide_end_ln()
-    local slide_end = vim.fn.search("FIN", "cnW") -- Search for the end of the current slide
-    if slide_end < 1 then
-        slide_end = vim.api.nvim_buf_line_count(0)
-    end
-    return slide_end
+    -- Search for the end of the current slide
+    return vim.fn.search("FIN", "cnW") or vim.api.nvim_buf_line_count(0)
 end
 
 ---Counts the number of virtual lines in a specified range of a buffer.
@@ -138,13 +135,15 @@ end
 ---Fires a slide changed event if the slide has changed
 ---@return nil
 local function fire_slide_event()
+    local active = vim.w.razzle_active_slide
+    local bnum = vim.api.nvim_get_current_buf()
     local cur = M.cur_slide_ln()
     local prev_end = M.prev_slide_end_ln()
-    if  vim.w.razzle_active_slide
-    and vim.w.razzle_active_slide ~= cur -- Check if current slide is not the active one
-    and prev_end < cur -- Ensure previous slide ends before what we think is the current slide begins
+    if active
+    and (active.lnum ~= cur or active.bnum ~= bnum) -- Check if current slide is not the active one
+    and prev_end <= cur -- Ensure previous slide ends before what we think is the current slide begins
     then
-        vim.w.razzle_active_slide = M.cur_slide_ln()
+        vim.w.razzle_active_slide = { lnum = cur, bnum = bnum }
         vim.cmd.doautocmd("User RazzleSlideChanged") -- Trigger the User RazzleSlideChanged
     end
 end
@@ -156,21 +155,22 @@ function M.start_presentation()
     vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
         callback = fire_slide_event, -- Set the callback function for the autocmd
         group = razzle_slide_group, -- Assign the autocmd to the created group
-        buffer = 0, -- Apply to the current buffer
     })
     local pos = M.cur_slide_ln()
     vim.fn.setpos('.', { 0, pos, 0, 0 }) -- Set cursor position in the current buffer
     vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event
-    vim.w.razzle_active_slide = pos -- Set the current slide as the active slide
+    -- Set the current slide as the active slide
+    vim.w.razzle_active_slide = {
+        lnum = pos,
+        bnum = vim.api.nvim_get_current_buf()
+    }
 end
 
 ---Ends the presentation by cleaning up autocmds and triggering the end event.
 ---@return nil
 function M.end_presentation()
     vim.cmd.doautocmd("User RazzleEnd") -- Trigger the User RazzleEnd event
-    local all_autocmds = vim.api.nvim_get_autocmds({
-        buffer=0, -- NOTE: this requires that all razzle groups have buffer=0 set
-    })
+    local all_autocmds = vim.api.nvim_get_autocmds()
     for _, cmd in ipairs(all_autocmds) do
         if cmd.group_name then
             -- if there's more than one command in the group, we accidentally try to delete it twice.

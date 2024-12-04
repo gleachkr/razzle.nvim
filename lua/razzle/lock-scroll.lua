@@ -29,13 +29,12 @@ function M.lock_scroll()
     local top = razzle.cur_slide_ln()
     local bot = razzle.cur_slide_end_ln()
     if bot <= top then
-        vim.notify("slide lacks interior, cannot lock cursor to interior")
+        vim.notify("slide lacks interior, cannot lock cursor to interior", vim.log.levels.WARN)
     else
         vim.w.razzle_scroll_bounds = {  top + 1 , bot - 1 }
         -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
         vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
             callback = M.restrict_cursor_movement,
-            buffer = 0,
             group = vim.api.nvim_create_augroup("RazzleLock", { clear = true }),
         })
     end
