@@ -43,7 +43,7 @@ end
 
 ---Calculates the end of the current slide
 ---@return number cur_end  The line number of the end of the current slide, or of the buffer if not found
-function M.end_slide_ln()
+function M.cur_slide_end_ln()
     local slide_end = vim.fn.search("FIN", "cnW") -- Search for the end of the current slide
     if slide_end < 1 then
         slide_end = vim.api.nvim_buf_line_count(0)
@@ -87,7 +87,7 @@ function M.slide_height()
     -- Get the line number of the top of the current slide
     local top = M.cur_slide_ln()
     -- Get the line number of the end of the current slide
-    local bot = M.end_slide_ln()
+    local bot = M.cur_slide_end_ln()
     -- Count the number of virtual lines between the top and bottom of the slide
     local virt = count_virtual_lines(0, top, bot)
     -- Return the total height of the slide, including virtual lines
@@ -127,7 +127,7 @@ end
 ---@return nil
 function M.align_view()
     local top = M.cur_slide_ln() -- the line number of the current slide
-    local bot = M.end_slide_ln() -- end number, the line number of the end of the current slide
+    local bot = M.cur_slide_end_ln() -- end number, the line number of the end of the current slide
     local pos = vim.fn.getpos('.')
     if pos[2] <= top then pos[2] = top + 1 end -- Adjust pos to make sure we're in the slide interior
     if pos[2] >= bot then pos[2] = bot - 1 end
