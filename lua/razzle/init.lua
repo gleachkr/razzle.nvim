@@ -3,7 +3,7 @@ local M = {}
 ---Calculates the start of the next slide
 ---@return number next_start The line number of the next slide found, or end of buffer if not found.
 function M.next_slide_ln()
-    return vim.fn.search("SLIDE", "n") or vim.api.nvim_buf_line_count(0)
+    return vim.fn.search("SLIDE", "znW") or vim.api.nvim_buf_line_count(0)
 end
 
 ---Calculates the start of the previous slide
@@ -25,17 +25,18 @@ end
 ---Calculates the end of the previous slide
 ---@return number prev_end The line number of the end of the previous slide, or 1 if not found
 function M.prev_slide_end_ln()
-    return vim.fn.search("FIN", "bnW") or 1  -- Search for the previous end marker
+    return vim.fn.search("FIN", "bnW") -- Search for the previous end marker
+        or M.cur_slide_ln() -- or the start of the current slide
+        or 1 -- or return 1
 end
 
 ---Calculates the start of the current slide
 ---@return number cur_start  The line number of the current slide, or 1 if not found.
 function M.cur_slide_ln()
-    local pos = vim.fn.getpos('.')  -- Store the current cursor position
     local line = vim.api.nvim_get_current_line()
     -- This search finds the current slide marker
     if line:find("SLIDE") then
-        return pos[2]
+        return vim.fn.getpos('.')[2]
     else
         return vim.fn.search("SLIDE", "bcnW") or 1
     end
@@ -44,8 +45,18 @@ end
 ---Calculates the end of the current slide
 ---@return number cur_end  The line number of the end of the current slide, or of the buffer if not found
 function M.cur_slide_end_ln()
-    -- Search for the end of the current slide
-    return vim.fn.search("FIN", "cnW") or vim.api.nvim_buf_line_count(0)
+    local cur_start = M.cur_slide_ln()
+    local pos = vim.fn.getpos('.')
+    vim.fn.setpos('.', { 0, cur_start, 10000, 0 }) --setup search by moving to last col of first line
+    local end_marker = vim.fn.search("FIN", "cnW") -- Search for the end marker of the current slide
+    local next_start = M.next_slide_ln() -- or the start of the next slide / end of file
+    vim.fn.setpos('.', pos) -- restore cursor position
+
+    if end_marker and end_marker < next_start then
+        return end_marker
+    else
+        return next_start
+    end
 end
 
 ---Counts the number of virtual lines in a specified range of a buffer.
@@ -138,10 +149,12 @@ local function fire_slide_event()
     local active = vim.w.razzle_active_slide
     local bnum = vim.api.nvim_get_current_buf()
     local cur = M.cur_slide_ln()
-    local prev_end = M.prev_slide_end_ln()
+    local cur_end = M.cur_slide_end_ln()
+    local pos = vim.fn.getpos('.')  -- Store the current cursor position
     if active
     and (active.lnum ~= cur or active.bnum ~= bnum) -- Check if current slide is not the active one
-    and prev_end <= cur -- Ensure previous slide ends before what we think is the current slide begins
+    and pos[2] > cur --ensure we're in the current slide interior
+    and pos[2] < cur_end
     then
         vim.w.razzle_active_slide = { lnum = cur, bnum = bnum }
         vim.cmd.doautocmd("User RazzleSlideChanged") -- Trigger the User RazzleSlideChanged
@@ -170,7 +183,7 @@ end
 ---@return nil
 function M.end_presentation()
     vim.cmd.doautocmd("User RazzleEnd") -- Trigger the User RazzleEnd event
-    local all_autocmds = vim.api.nvim_get_autocmds()
+    local all_autocmds = vim.api.nvim_get_autocmds({})
     for _, cmd in ipairs(all_autocmds) do
         if cmd.group_name then
             -- if there's more than one command in the group, we accidentally try to delete it twice.
