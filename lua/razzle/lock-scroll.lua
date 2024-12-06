@@ -1,4 +1,4 @@
-local razzle = require("razzle")
+local slide = require("razzle.slide")
 
 ---Module for locking the cursor to a certain range
 ---@class RazzleLock
@@ -26,8 +26,8 @@ end
 ---@return nil
 function M.lock_scroll()
     -- Set scroll bounds
-    local top = razzle.cur_slide_ln()
-    local bot = razzle.cur_slide_end_ln()
+    local top = slide.cur_slide_ln()
+    local bot = slide.cur_slide_end_ln()
     if bot <= top then
         vim.notify("slide lacks interior, cannot lock cursor to interior", vim.log.levels.WARN)
     else

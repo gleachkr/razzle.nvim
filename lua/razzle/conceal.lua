@@ -1,4 +1,4 @@
----Module for managing slide markers in Vim.
+---Module for concealing slide markers 
 ---@class RazzleConceal
 local M = {}
 
