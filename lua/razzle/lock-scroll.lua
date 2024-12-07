@@ -35,7 +35,7 @@ function M.lock_scroll()
         -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
         vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
             callback = M.restrict_cursor_movement,
-            group = vim.api.nvim_create_augroup("RazzleLock", { clear = true }),
+            group = vim.api.nvim_create_augroup("Razzle", { clear = false }),
         })
     end
 end

@@ -23,7 +23,7 @@ end
 ---Starts the presentation by setting up autocmds and triggering the start event.
 ---@return nil
 function M.start_presentation()
-    local razzle_slide_group = vim.api.nvim_create_augroup("RazzleSlide", { clear = true })
+    local razzle_slide_group = vim.api.nvim_create_augroup("Razzle", { clear = true })
     vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
         callback = fire_slide_event, -- Set the callback function for the autocmd
         group = razzle_slide_group, -- Assign the autocmd to the created group
@@ -42,13 +42,11 @@ end
 ---@return nil
 function M.end_presentation()
     vim.cmd.doautocmd("User RazzleEnd") -- Trigger the User RazzleEnd event
-    local all_autocmds = vim.api.nvim_get_autocmds({})
+    local all_autocmds = vim.api.nvim_get_autocmds({ group = "Razzle"})
     for _, cmd in ipairs(all_autocmds) do
-        if cmd.group_name then
-            -- if there's more than one command in the group, we accidentally try to delete it twice.
-            -- this is a workaround, we should deduplicate the list instead.
-            pcall(vim.api.nvim_del_augroup_by_name,cmd.group_name) -- Safely delete the autocommand group
-        end
+        -- if there's more than one command in the group, we accidentally try to delete it twice.
+        -- this is a workaround, we should deduplicate the list instead.
+        pcall(vim.api.nvim_del_augroup_by_name,cmd.group_name) -- Safely delete the autocommand group
     end
     vim.w.razzle_active_slide = nil -- Clear the active slide
 end
