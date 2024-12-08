@@ -51,4 +51,12 @@ function M.end_presentation()
     vim.w.razzle_active_slide = nil -- Clear the active slide
 end
 
+vim.api.nvim_create_user_command("RazzleStart", M.start_presentation, {
+    desc = "Starts the presentation by setting up autocmds and triggering the start event."
+})
+
+vim.api.nvim_create_user_command("RazzleEnd", M.end_presentation, {
+    desc = "Ends the presentation by cleaning up autocmds and triggering the end event."
+})
+
 return M
