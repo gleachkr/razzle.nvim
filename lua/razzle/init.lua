@@ -42,12 +42,7 @@ end
 ---@return nil
 function M.end_presentation()
     vim.cmd.doautocmd("User RazzleEnd") -- Trigger the User RazzleEnd event
-    local all_autocmds = vim.api.nvim_get_autocmds({ group = "Razzle"})
-    for _, cmd in ipairs(all_autocmds) do
-        -- if there's more than one command in the group, we accidentally try to delete it twice.
-        -- this is a workaround, we should deduplicate the list instead.
-        pcall(vim.api.nvim_del_augroup_by_name,cmd.group_name) -- Safely delete the autocommand group
-    end
+    vim.api.nvim_del_augroup_by_name("Razzle")
     vim.w.razzle_active_slide = nil -- Clear the active slide
 end
 
