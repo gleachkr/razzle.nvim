@@ -2,8 +2,62 @@
 ---@class RazzleSlide
 local M = {}
 
+--[[-- 
+
+This module is intended to provide basic functions that implicitly define what
+counts as a slide. Slides intuitively begin with slide marker ("SLIDE" by
+default), and end with an end marker ("FIN" by default). However, illegal
+states should be unrepresentable. So, more precisely, a slide is:
+
+    A sequence of one or more contiguous lines, 
+
+    a. preceded by a line contianing a slide-marker, 
+    b. not containing any lines that contain end-markers or slide-markers, and 
+    c. not containing any slides as parts.
+
+This definition entails that every line belongs to at most one slide, with no
+assumptions about how we insert slide and end markers For: if a line belonged
+to two slides, A and B, then A and B need to begin on different lines (since
+otherwise whichever one ended first would be a part of the other). Assuming
+A starts later than B, then B must end after A starts (otherwise they couldn't
+share a line). But that means B contains a slide marker, which is forbidden.
+
+Here's an example that illustrates most of the tricky cases:
+
+```
+
+SLIDE
+        ┐
+        │ Slide 1
+        ┘
+SLIDE
+        ┐
+        │ Slide 2
+        ┘
+FIN
+
+FIN
+
+FIN SLIDE FIN
+       ┐
+       │
+       │ Slide 3
+       │
+       ┘
+SLIDE
+FIN
+SLIDE
+       ┐
+       │
+       │ Slide 4
+       │
+       ┘
+```
+
+]]
+
 --Vim Search, but falsy if nothing is found
-function M.search(pattern, flags, stopline, timeout, skip)
+local function search(pattern, flags, stopline, timeout, skip)
     local rslt = vim.fn.search(pattern, flags, stopline, timeout, skip)
     if rslt > 0 then
         return rslt
@@ -15,7 +69,7 @@ end
 ---Calculates the start of the next slide
 ---@return number next_start The line number of the next slide found, or end of buffer if not found.
 function M.next_slide_ln()
-    return M.search("SLIDE", "znW") or vim.api.nvim_buf_line_count(0)
+    return search("SLIDE", "znW") or vim.api.nvim_buf_line_count(0)
 end
 
 ---Calculates the start of the previous slide
@@ -26,10 +80,10 @@ function M.prev_slide_ln()
     if not line:find("SLIDE") then
         -- This search finds the current slide marker, if we're not already
         -- on it
-        M.search("SLIDE", "bcW")
+        search("SLIDE", "bcW")
     end
     -- and this finds the one before that
-    local slide_line_number = M.search("SLIDE", "bnW")
+    local slide_line_number = search("SLIDE", "bnW")
     vim.fn.setpos('.', pos)  -- Restore the cursor position
     return slide_line_number or 1  -- Return the line number of the previous slide
 end
@@ -37,7 +91,7 @@ end
 ---Calculates the end of the previous slide
 ---@return number prev_end The line number of the end of the previous slide, or 1 if not found
 function M.prev_slide_end_ln()
-    return M.search("FIN", "bnW") -- Search for the previous end marker
+    return search("FIN", "bnW") -- Search for the previous end marker
         or M.cur_slide_ln() -- or the start of the current slide
 end
 
@@ -49,7 +103,7 @@ function M.cur_slide_ln()
     if line:find("SLIDE") then
         return vim.fn.getpos('.')[2]
     else
-        return M.search("SLIDE", "bcnW") or 1
+        return search("SLIDE", "bcnW") or 1
     end
 end
 
@@ -59,7 +113,7 @@ function M.cur_slide_end_ln()
     local cur_start = M.cur_slide_ln()
     local pos = vim.fn.getpos('.')
     vim.fn.setpos('.', { 0, cur_start, 10000, 0 }) --setup search by moving to last col of first line
-    local end_marker = M.search("FIN", "cnW") -- Search for the end marker of the current slide
+    local end_marker = search("FIN", "cnW") -- Search for the end marker of the current slide
     local next_start = M.next_slide_ln() -- or the start of the next slide / end of file
     vim.fn.setpos('.', pos) -- restore cursor position
 
