@@ -56,6 +56,29 @@ SLIDE
 
 ]]
 
+local startMark = vim.regex([[\(^.*SLIDE.*$\)]])
+
+local endMark = vim.regex([[\(^.*SLIDE\|FIN.*$\)]])
+
+local function find_slides()
+    local lines = vim.api.nvim_buf_get_lines(0,0,-1,false)
+    local inSlide = false
+    local curSlide = {}
+    local allSlides = {}
+    for i, line in ipairs(lines) do
+        if inSlide and endMark:match_line(0,i - 1) then
+            inSlide = false
+            if #curSlide > 0 then curSlide = {} end
+        end
+        if inSlide then curSlide[#curSlide + 1] = line end
+        if (not inSlide) and startMark:match_line(0,i - 1) then
+            allSlides[#allSlides + 1] = curSlide
+            inSlide = true
+        end
+    end
+    return allSlides
+end
+
 --Vim Search, but falsy if nothing is found
 local function search(pattern, flags, stopline, timeout, skip)
     local rslt = vim.fn.search(pattern, flags, stopline, timeout, skip)
