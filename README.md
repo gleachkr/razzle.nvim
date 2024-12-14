@@ -13,7 +13,7 @@ ends with FIN.
 You start a presentation with `require("razzle").start_presentation()` and end
 it with `require("razzle").end_presentation()`. The first fires a `RazzleStart`
 event, and the second fires a `RazzleEnd` event. During the presentation,
-changing slides fires a `RazzleSlideChanged` event. That's the basic idea, it's
+entering a new slide fires a `RazzleSlideEnter` event. That's the basic idea, it's
 very simple.
 
 You can handle these events by updating the view so that your slide is properly
@@ -30,12 +30,12 @@ Here's an example of some event handling for a razzle presentation:
 ```lua
 vim.api.nvim_create_autocmd("User", {
     callback = function()
-        local height = require("razzle").slide_height()
+        local height = require("razzle.slide").slide_height()
         require("razzle.zen-mode").set_layout(nil, height)
-        require("razzle").align_view()
+        require("razzle.motion").align_view()
         require("razzle.lock-scroll").lock_scroll()
     end,
-    pattern = "RazzleSlideChanged",
+    pattern = "RazzleSlideEnter",
 })
 
 

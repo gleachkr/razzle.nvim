@@ -60,19 +60,28 @@ local startMark = vim.regex([[\(^.*SLIDE.*$\)]])
 
 local endMark = vim.regex([[\(^.*SLIDE\|FIN.*$\)]])
 
+---@class Slide
+---@field startLn number
+---@field endLn number
+
+---Generates a liste of all the slides in the current buffer
+---@return Slide[] slides
 local function find_slides()
     local lines = vim.api.nvim_buf_get_lines(0,0,-1,false)
     local inSlide = false
     local curSlide = {}
     local allSlides = {}
-    for i, line in ipairs(lines) do
+    for i, _ in ipairs(lines) do
         if inSlide and endMark:match_line(0,i - 1) then
             inSlide = false
-            if #curSlide > 0 then curSlide = {} end
+            if curSlide.startLn and i - curSlide.startLn > 1 then
+                curSlide.endLn = i
+                allSlides[#allSlides + 1] = curSlide
+            end
+            curSlide = {}
         end
-        if inSlide then curSlide[#curSlide + 1] = line end
         if (not inSlide) and startMark:match_line(0,i - 1) then
-            allSlides[#allSlides + 1] = curSlide
+            curSlide.startLn = i
             inSlide = true
         end
     end
@@ -89,61 +98,94 @@ local function search(pattern, flags, stopline, timeout, skip)
     end
 end
 
----Calculates the start of the next slide
+---Finds the the first slide beginning after the cursor line
+---@return Slide | nil next_slide The next slide found, or nil if none found
+function M.next_slide()
+    local slides = find_slides()
+    local ln = vim.fn.line('.')
+    for _, slide in ipairs(slides) do
+        if slide.startLn > ln then
+            return slide
+        end
+    end
+end
+
+---Finds the last slide ending before the cursor line
+---@return Slide | nil prev_start The last slide ending before the cursor line, or nil if none found
+function M.prev_slide()
+    local slides = find_slides()
+    local ln = vim.fn.line('.')
+    for i=1, #slides do
+        if slides[#slides + 1 - i].endLn < ln then
+            return slides[#slides + 1 - i]
+        end
+    end
+end
+
+---Finds the slide containing the cursor line
+---@return Slide | nil prev_start The slide containing the cursor line, or nil if none found
+function M.cur_slide()
+    local slides = find_slides()
+    local ln = vim.fn.line('.')
+    for _, slide in ipairs(slides) do
+        if slide.endLn > ln then
+            if slide.startLn < ln then
+                return slide
+            else
+                return nil
+            end
+        end
+    end
+end
+
+---Calculates the start of the first slide beginning after the cursor line
 ---@return number next_start The line number of the next slide found, or end of buffer if not found.
 function M.next_slide_ln()
-    return search("SLIDE", "znW") or vim.api.nvim_buf_line_count(0)
+    local next = M.next_slide()
+    if next then
+        return next.startLn
+    else
+        return vim.api.nvim_buf_line_count(0)
+    end
 end
 
----Calculates the start of the previous slide
+---Calculates the start of the last slide ending before the cursor line
 ---@return number prev_start The line number of the previous slide found, or 1 if not found.
 function M.prev_slide_ln()
-    local pos = vim.fn.getpos('.')  -- Store the current cursor position
-    local line = vim.api.nvim_get_current_line()
-    if not line:find("SLIDE") then
-        -- This search finds the current slide marker, if we're not already
-        -- on it
-        search("SLIDE", "bcW")
+    local prev = M.prev_slide()
+    if prev then
+        return prev.startLn
+    else
+        return 1
     end
-    -- and this finds the one before that
-    local slide_line_number = search("SLIDE", "bnW")
-    vim.fn.setpos('.', pos)  -- Restore the cursor position
-    return slide_line_number or 1  -- Return the line number of the previous slide
 end
 
----Calculates the end of the previous slide
+---Calculates the end of the last slide ending before the cursor line
 ---@return number prev_end The line number of the end of the previous slide, or 1 if not found
 function M.prev_slide_end_ln()
-    return search("FIN", "bnW") -- Search for the previous end marker
-        or M.cur_slide_ln() -- or the start of the current slide
-end
-
----Calculates the start of the current slide
----@return number cur_start  The line number of the current slide, or 1 if not found.
-function M.cur_slide_ln()
-    local line = vim.api.nvim_get_current_line()
-    -- This search finds the current slide marker
-    if line:find("SLIDE") then
-        return vim.fn.getpos('.')[2]
+    local prev = M.prev_slide()
+    if prev then
+        return prev.endLn
     else
-        return search("SLIDE", "bcnW") or 1
+        return vim.api.nvim_buf_line_count(0)
     end
 end
 
----Calculates the end of the current slide
----@return number cur_end  The line number of the end of the current slide, or of the buffer if not found
-function M.cur_slide_end_ln()
-    local cur_start = M.cur_slide_ln()
-    local pos = vim.fn.getpos('.')
-    vim.fn.setpos('.', { 0, cur_start, 10000, 0 }) --setup search by moving to last col of first line
-    local end_marker = search("FIN", "cnW") -- Search for the end marker of the current slide
-    local next_start = M.next_slide_ln() -- or the start of the next slide / end of file
-    vim.fn.setpos('.', pos) -- restore cursor position
+---Calculates the start of the slide contianing the cursor
+---@return number | nil cur_start  The line number of the start of the current slide, or nil if not found.
+function M.cur_slide_ln()
+    local cur = M.cur_slide()
+    if cur then
+        return cur.startLn
+    end
+end
 
-    if end_marker and end_marker < next_start then
-        return end_marker
-    else
-        return next_start
+---Calculates the end of the slide contianing the cursor
+---@return number | nil cur_end  The line number of the end of the current slide, or nil if not found
+function M.cur_slide_end_ln()
+    local cur = M.cur_slide()
+    if cur then
+        return cur.endLn
     end
 end
 
@@ -178,16 +220,18 @@ local function count_virtual_lines(bufnr, start_line, end_line)
 end
 
 ---Calculates the height of the current slide's interior
----@return number height The height of the current slide's interior, including virtual lines.
+---@return number | nil height The height of the current slide's interior, including virtual lines.
 function M.slide_height()
     -- Get the line number of the top of the current slide
     local top = M.cur_slide_ln()
     -- Get the line number of the end of the current slide
     local bot = M.cur_slide_end_ln()
     -- Count the number of virtual lines between the top and bottom of the slide
-    local virt = count_virtual_lines(0, top, bot)
-    -- Return the total height of the slide, including virtual lines
-    return (bot - top) + virt - 1
+    if top and bot then
+        local virt = count_virtual_lines(0, top, bot)
+        -- Return the total height of the slide, including virtual lines
+        return (bot - top) + virt - 1
+    end
 end
 
 return M

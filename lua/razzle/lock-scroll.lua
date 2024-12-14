@@ -28,7 +28,9 @@ function M.lock_scroll()
     -- Set scroll bounds
     local top = slide.cur_slide_ln()
     local bot = slide.cur_slide_end_ln()
-    if bot <= top then
+    if not top then
+        print("Can't lock scroll, cursor must be in a slide")
+    elseif bot <= top then
         vim.notify("slide lacks interior, cannot lock cursor to interior", vim.log.levels.WARN)
     else
         vim.w.razzle_scroll_bounds = {  top + 1 , bot - 1 }

@@ -2,7 +2,7 @@ local M = {}
 
 local slide = require("razzle.slide")
 
----Fires a slide changed event if the slide has changed
+---Fires a slide enter event on entering a new slide
 ---@return nil
 local function fire_slide_event()
     local active = vim.w.razzle_active_slide
@@ -10,13 +10,14 @@ local function fire_slide_event()
     local cur = slide.cur_slide_ln()
     local cur_end = slide.cur_slide_end_ln()
     local pos = vim.fn.getpos('.')  -- Store the current cursor position
-    if active
+    if cur
+    and active
     and (active.lnum ~= cur or active.bnum ~= bnum) -- Check if current slide is not the active one
     and pos[2] > cur --ensure we're in the current slide interior
     and pos[2] < cur_end
     then
         vim.w.razzle_active_slide = { lnum = cur, bnum = bnum }
-        vim.cmd.doautocmd("User RazzleSlideChanged") -- Trigger the User RazzleSlideChanged
+        vim.cmd.doautocmd("User RazzleSlideEnter") -- Trigger the User RazzleSlideChanged
     end
 end
 
@@ -28,14 +29,18 @@ function M.start_presentation()
         callback = fire_slide_event, -- Set the callback function for the autocmd
         group = razzle_slide_group, -- Assign the autocmd to the created group
     })
-    local pos = slide.cur_slide_ln()
-    vim.fn.setpos('.', { 0, pos, 0, 0 }) -- Set cursor position in the current buffer
-    vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event
-    -- Set the current slide as the active slide
-    vim.w.razzle_active_slide = {
-        lnum = pos,
-        bnum = vim.api.nvim_get_current_buf()
-    }
+    local pos = slide.cur_slide_ln() --get start marker for current slide
+    if not pos then
+        print("Can't start presentation: cursor must be in a slide")
+    else
+        vim.fn.setpos('.', { 0, pos + 1, 0, 0 }) -- Set cursor position in the current buffer
+        vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event
+        -- Set the current slide as the active slide
+        vim.w.razzle_active_slide = {
+            lnum = pos,
+            bnum = vim.api.nvim_get_current_buf()
+        }
+    end
 end
 
 ---Ends the presentation by cleaning up autocmds and triggering the end event.
