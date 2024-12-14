@@ -31,7 +31,7 @@ function M.start_presentation()
     })
     local pos = slide.cur_slide_ln() --get start marker for current slide
     if not pos then
-        print("Can't start presentation: cursor must be in a slide")
+        vim.notify("Can't start presentation: cursor must be in a slide", vim.log.levels.ERROR)
     else
         vim.fn.setpos('.', { 0, pos + 1, 0, 0 }) -- Set cursor position in the current buffer
         vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event

@@ -29,9 +29,9 @@ function M.lock_scroll()
     local top = slide.cur_slide_ln()
     local bot = slide.cur_slide_end_ln()
     if not top then
-        print("Can't lock scroll, cursor must be in a slide")
+        vim.notify("Can't lock scroll, cursor must be in a slide", vim.log.levels.ERROR)
     elseif bot <= top then
-        vim.notify("slide lacks interior, cannot lock cursor to interior", vim.log.levels.WARN)
+        vim.notify("slide lacks interior, cannot lock cursor to interior", vim.log.levels.ERROR)
     else
         vim.w.razzle_scroll_bounds = {  top + 1 , bot - 1 }
         -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
