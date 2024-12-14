@@ -88,16 +88,6 @@ local function find_slides()
     return allSlides
 end
 
---Vim Search, but falsy if nothing is found
-local function search(pattern, flags, stopline, timeout, skip)
-    local rslt = vim.fn.search(pattern, flags, stopline, timeout, skip)
-    if rslt > 0 then
-        return rslt
-    else
-        return nil
-    end
-end
-
 ---Finds the the first slide beginning after the cursor line
 ---@return Slide | nil next_slide The next slide found, or nil if none found
 function M.next_slide()
@@ -139,35 +129,29 @@ function M.cur_slide()
 end
 
 ---Calculates the start of the first slide beginning after the cursor line
----@return number next_start The line number of the next slide found, or end of buffer if not found.
+---@return number | nil next_start The line number of the next slide found, or nil if not found.
 function M.next_slide_ln()
     local next = M.next_slide()
     if next then
         return next.startLn
-    else
-        return vim.api.nvim_buf_line_count(0)
     end
 end
 
 ---Calculates the start of the last slide ending before the cursor line
----@return number prev_start The line number of the previous slide found, or 1 if not found.
+---@return number | nil prev_start The line number of the previous slide found, or nil if not found.
 function M.prev_slide_ln()
     local prev = M.prev_slide()
     if prev then
         return prev.startLn
-    else
-        return 1
     end
 end
 
 ---Calculates the end of the last slide ending before the cursor line
----@return number prev_end The line number of the end of the previous slide, or 1 if not found
+---@return number | nil prev_end The line number of the end of the previous slide, or nil if not found
 function M.prev_slide_end_ln()
     local prev = M.prev_slide()
     if prev then
         return prev.endLn
-    else
-        return vim.api.nvim_buf_line_count(0)
     end
 end
 

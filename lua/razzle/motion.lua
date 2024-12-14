@@ -10,7 +10,11 @@ function M.next_slide()
     -- Get the line number of the next slide
     local pos = slide.next_slide_ln()
     -- Set the cursor position to the next slide
-    vim.fn.setpos('.', { 0, pos + 1, 0, 0 })
+    if pos then
+        vim.fn.setpos('.', { 0, pos + 1, 0, 0 })
+    else
+        print("Can't move to next slide, no next slide found")
+    end
 end
 
 ---Moves to the top of the previous slide's interior
@@ -19,7 +23,11 @@ function M.prev_slide()
     -- Get the line number of the previous slide
     local pos = slide.prev_slide_ln()
     -- Set the cursor position to the previous slide's line
-    vim.fn.setpos('.', { 0, pos + 1, 0, 0 })
+    if pos then
+        vim.fn.setpos('.', { 0, pos + 1, 0, 0 })
+    else
+        print("Can't move to previous slide, no next slide found")
+    end
 end
 
 ---Moves to top of the current slide's interior
