@@ -1,12 +1,12 @@
 local slide = require("razzle.slide")
 
----Module for locking the cursor to a certain range
+---Module for locking the cursor to a certain range within a certain window
 ---@class RazzleLock
 local M = {}
 
----Restrict cursor movement within the bounds set in the buffer.
+---Restrict cursor movement within the bounds set in the window.
 ---@return nil
-function M.restrict_cursor_movement()
+local function restrict_cursor_movement()
     if not vim.w.razzle_scroll_bounds then return nil end
     local current_line = vim.fn.line(".")
     local lower_bound = vim.w.razzle_scroll_bounds[1]
@@ -22,6 +22,18 @@ function M.restrict_cursor_movement()
     end
 end
 
+---Restrict cursor movement to the window, returning if its not a popup or
+---a window with scroll bounds
+---@return nil
+local function restrict_cursor_window()
+    local is_float = vim.fn.win_gettype() == "popup"
+    if not vim.w.razzle_scroll_bounds and not is_float then
+        vim.cmd.wincmd("p")
+    end
+end
+
+M.lock_group = vim.api.nvim_create_augroup("RazzleLock", {})
+
 ---Lock the scroll by setting the bounds based on the current window.
 ---@return nil
 function M.lock_scroll()
@@ -36,8 +48,12 @@ function M.lock_scroll()
         vim.w.razzle_scroll_bounds = {  top + 1 , bot - 1 }
         -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
         vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
-            callback = M.restrict_cursor_movement,
-            group = vim.api.nvim_create_augroup("Razzle", { clear = false }),
+            callback = restrict_cursor_movement,
+            group = M.lock_group,
+        })
+        vim.api.nvim_create_autocmd({"WinEnter"}, {
+            callback = restrict_cursor_window,
+            group = M.lock_group,
         })
     end
 end
@@ -47,6 +63,8 @@ end
 function M.unlock_scroll()
     -- Unset scroll bounds
     vim.w.razzle_scroll_bounds = nil
+    -- clear lock group
+    M.lock_group = vim.api.nvim_create_augroup("RazzleLock",{})
 end
 
 

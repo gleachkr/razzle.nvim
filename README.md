@@ -28,12 +28,19 @@ proper `:help` docs, I hope.
 Here's an example of some event handling for a razzle presentation:
 
 ```lua
+razzle = require("razzle")
+zen_mode = require("razzle.zen-mode")
+lock = require("razzle.lock")
+motion = require("razzle.motion")
+conceal = require("razzle.conceal")
+
+
 vim.api.nvim_create_autocmd("User", {
     callback = function()
         local height = require("razzle.slide").slide_height()
-        require("razzle.zen-mode").set_layout(nil, height)
-        require("razzle.motion").align_view()
-        require("razzle.lock-scroll").lock_scroll()
+        zen_mode.set_layout(nil, height)
+        motion.align_view()
+        lock.lock_scroll()
     end,
     pattern = "RazzleSlideEnter",
 })
@@ -42,19 +49,20 @@ vim.api.nvim_create_autocmd("User", {
 vim.api.nvim_create_autocmd("User", {
     callback = function()
         vim.opt.scrolloff = 0
-        require("razzle.conceal").conceal_slide_markers()
-        local height = require("razzle").slide_height()
+        local slide_group = vim.api.nvim_create_augroup("Razzle", { clear = false})
+        conceal.conceal_slide_markers()
+        local height = require("razzle.slide").slide_height()
         require("zen-mode").open({window = { height=height, width=80 }})
-        require("razzle").align_view()
-        require("razzle.lock-scroll").lock_scroll()
+        motion.align_view()
+        lock.lock_scroll()
         vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
             callback = function()
-                local height = require("razzle").slide_height()
-                require("razzle.zen-mode").set_layout(nil, height)
-                require("razzle").align_view()
-                require("razzle.lock-scroll").lock_scroll()
+                local height = require("razzle.slide").slide_height()
+                zen_mode.set_layout(nil, height)
+                motion.align_view()
+                lock.lock_scroll()
             end,
-            buffer = 0,
+            group = slide_group
         })
     end,
     pattern = "RazzleStart"
@@ -62,15 +70,15 @@ vim.api.nvim_create_autocmd("User", {
 
 vim.api.nvim_create_autocmd("User", {
     callback = function()
-        require("razzle.conceal").reveal_slide_markers()
-        require("razzle.lock-scroll").unlock_scroll()
+        conceal.reveal_slide_markers()
+        lock.unlock_scroll()
         require("zen-mode").close()
     end,
     pattern = "RazzleEnd"
 })
 
 
-vim.keymap.set("n", "]S", require("razzle").next_slide)
-vim.keymap.set("n", "[S", require("razzle").prev_slide)
+vim.keymap.set("n", "]S", motion.next_slide)
+vim.keymap.set("n", "[S", motion.prev_slide)
 ```
 

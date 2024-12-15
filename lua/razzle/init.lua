@@ -25,9 +25,10 @@ end
 ---@return nil
 function M.start_presentation()
     local razzle_slide_group = vim.api.nvim_create_augroup("Razzle", { clear = true })
+    -- fire slide events on move to a new window
     vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
-        callback = fire_slide_event, -- Set the callback function for the autocmd
-        group = razzle_slide_group, -- Assign the autocmd to the created group
+        callback = fire_slide_event,
+        group = razzle_slide_group,
     })
     local pos = slide.cur_slide_ln() --get start marker for current slide
     if not pos then
