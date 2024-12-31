@@ -63,13 +63,14 @@ local endMark = vim.regex([[\(^.*SLIDE\|FIN.*$\)]])
 ---@class Slide
 ---@field startLn number
 ---@field endLn number
+---@field bufNu number
 
 ---Generates a liste of all the slides in the current buffer
 ---@return Slide[] slides
 local function find_slides()
     local lines = vim.api.nvim_buf_get_lines(0,0,-1,false)
     local inSlide = false
-    local curSlide = {}
+    local curSlide = { bufNu = vim.api.nvim_get_current_buf() }
     local allSlides = {}
     for i, _ in ipairs(lines) do
         if inSlide and endMark:match_line(0,i - 1) then
@@ -78,7 +79,7 @@ local function find_slides()
                 curSlide.endLn = i
                 allSlides[#allSlides + 1] = curSlide
             end
-            curSlide = {}
+            curSlide = { bufNu = vim.api.nvim_get_current_buf() }
         end
         if (not inSlide) and startMark:match_line(0,i - 1) then
             curSlide.startLn = i

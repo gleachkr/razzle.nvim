@@ -6,17 +6,15 @@ local slide = require("razzle.slide")
 ---@return nil
 local function fire_slide_event()
     local active = vim.w.razzle_active_slide
-    local bnum = vim.api.nvim_get_current_buf()
-    local cur = slide.cur_slide_ln()
-    local cur_end = slide.cur_slide_end_ln()
+    local cur = slide.cur_slide()
     local pos = vim.fn.getpos('.')  -- Store the current cursor position
     if cur
     and active
-    and (active.lnum ~= cur or active.bnum ~= bnum) -- Check if current slide is not the active one
-    and pos[2] > cur --ensure we're in the current slide interior
-    and pos[2] < cur_end
+    and (active.startLn ~= cur.startLn or active.bufNu ~= cur.bufNu) -- Check if current slide is not the active one
+    and pos[2] > cur.startLn --ensure we're in the current slide interior
+    and pos[2] < cur.endLn
     then
-        vim.w.razzle_active_slide = { lnum = cur, bnum = bnum }
+        vim.w.razzle_active_slide = cur
         vim.cmd.doautocmd("User RazzleSlideEnter") -- Trigger the User RazzleSlideChanged
     end
 end
