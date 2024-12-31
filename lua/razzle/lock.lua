@@ -32,8 +32,6 @@ local function restrict_cursor_window()
     end
 end
 
-M.lock_group = vim.api.nvim_create_augroup("RazzleLock", {})
-
 ---Lock the scroll by setting the bounds based on the current window.
 ---@return nil
 function M.lock_scroll()
@@ -49,11 +47,11 @@ function M.lock_scroll()
         -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
         vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
             callback = restrict_cursor_movement,
-            group = M.lock_group,
+            group = vim.api.nvim_create_augroup("Razzle", { clear = false}),
         })
         vim.api.nvim_create_autocmd({"WinEnter"}, {
             callback = restrict_cursor_window,
-            group = M.lock_group,
+            group = vim.api.nvim_create_augroup("Razzle", { clear = false}),
         })
     end
 end
@@ -63,8 +61,6 @@ end
 function M.unlock_scroll()
     -- Unset scroll bounds
     vim.w.razzle_scroll_bounds = nil
-    -- clear lock group
-    M.lock_group = vim.api.nvim_create_augroup("RazzleLock",{})
 end
 
 vim.api.nvim_create_autocmd("User", {
@@ -80,11 +76,10 @@ vim.api.nvim_create_autocmd("User", {
 vim.api.nvim_create_autocmd("User", {
     callback = function()
         vim.opt.scrolloff = 0
-        local slide_group = vim.api.nvim_create_augroup("Razzle", { clear = false})
         M.lock_scroll()
         vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
             callback = M.lock_scroll,
-            group = slide_group
+            group = vim.api.nvim_create_augroup("Razzle", { clear = false})
         })
     end,
     pattern = "RazzleStart"
