@@ -25,4 +25,14 @@ function M.reveal_slide_markers()
     vim.cmd('highlight clear ConcealLine')
 end
 
+vim.api.nvim_create_autocmd("User", {
+    callback = M.conceal_slide_markers,
+    pattern = "RazzleStart",
+})
+
+vim.api.nvim_create_autocmd("User", {
+    callback = M.reveal_slide_markers,
+    pattern = "RazzleEnd",
+})
+
 return M

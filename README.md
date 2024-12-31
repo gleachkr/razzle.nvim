@@ -28,56 +28,12 @@ proper `:help` docs, I hope.
 Here's an example of some event handling for a razzle presentation:
 
 ```lua
-razzle = require("razzle")
-zen_mode = require("razzle.zen-mode")
-lock = require("razzle.lock")
+require("razzle")
+require("razzle.lock")
+require("razzle.conceal")
+require("razzle.zen-mode")
+
 motion = require("razzle.motion")
-conceal = require("razzle.conceal")
-
-
-vim.api.nvim_create_autocmd("User", {
-    callback = function()
-        local height = require("razzle.slide").slide_height()
-        zen_mode.set_layout(nil, height)
-        motion.align_view()
-        lock.lock_scroll()
-    end,
-    pattern = "RazzleSlideEnter",
-})
-
-
-vim.api.nvim_create_autocmd("User", {
-    callback = function()
-        vim.opt.scrolloff = 0
-        local slide_group = vim.api.nvim_create_augroup("Razzle", { clear = false})
-        conceal.conceal_slide_markers()
-        local height = require("razzle.slide").slide_height()
-        require("zen-mode").open({window = { height=height, width=80 }})
-        motion.align_view()
-        lock.lock_scroll()
-        vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
-            callback = function()
-                local height = require("razzle.slide").slide_height()
-                zen_mode.set_layout(nil, height)
-                motion.align_view()
-                lock.lock_scroll()
-            end,
-            group = slide_group
-        })
-    end,
-    pattern = "RazzleStart"
-})
-
-vim.api.nvim_create_autocmd("User", {
-    callback = function()
-        conceal.reveal_slide_markers()
-        lock.unlock_scroll()
-        require("zen-mode").close()
-    end,
-    pattern = "RazzleEnd"
-})
-
-
 vim.keymap.set("n", "]S", motion.next_slide)
 vim.keymap.set("n", "[S", motion.prev_slide)
 ```

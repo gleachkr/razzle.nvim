@@ -67,5 +67,27 @@ function M.unlock_scroll()
     M.lock_group = vim.api.nvim_create_augroup("RazzleLock",{})
 end
 
+vim.api.nvim_create_autocmd("User", {
+    callback = M.lock_scroll,
+    pattern = "RazzleSlideEnter",
+})
+
+vim.api.nvim_create_autocmd("User", {
+    callback = M.unlock_scroll,
+    pattern = "RazzleEnd"
+})
+
+vim.api.nvim_create_autocmd("User", {
+    callback = function()
+        vim.opt.scrolloff = 0
+        local slide_group = vim.api.nvim_create_augroup("Razzle", { clear = false})
+        M.lock_scroll()
+        vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
+            callback = M.lock_scroll,
+            group = slide_group
+        })
+    end,
+    pattern = "RazzleStart"
+})
 
 return M

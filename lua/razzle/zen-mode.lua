@@ -3,6 +3,8 @@
 local M = {}
 
 local zen = require("zen-mode.view")
+local motion = require("razzle.motion")
+local slide = require("razzle.slide")
 
 function M.set_layout(w, h)
     if zen.is_open() then
@@ -24,5 +26,35 @@ function M.set_layout(w, h)
         end
     end
 end
+
+vim.api.nvim_create_autocmd("User", {
+    callback = function()
+        local height = slide.slide_height()
+        M.set_layout(nil, height)
+        motion.align_view()
+    end,
+    pattern = "RazzleSlideEnter",
+})
+
+vim.api.nvim_create_autocmd("User", {
+    callback = function()
+        vim.opt.scrolloff = 0
+        zen.open({window = { height=slide.slide_height(), width=80 }})
+        motion.align_view()
+        vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
+            callback = function()
+                M.set_layout(nil, slide.slide_height())
+                motion.align_view()
+            end,
+            group = vim.api.nvim_create_augroup("Razzle", { clear = false})
+        })
+    end,
+    pattern = "RazzleStart"
+})
+
+vim.api.nvim_create_autocmd("User", {
+    callback = zen.close,
+    pattern = "RazzleEnd"
+})
 
 return M
