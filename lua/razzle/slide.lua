@@ -65,9 +65,9 @@ local endMark = vim.regex([[\(^.*SLIDE\|FIN.*$\)]])
 ---@field endLn number
 ---@field bufNu number
 
----Generates a liste of all the slides in the current buffer
+---Generates a list of all the slides in the current buffer
 ---@return Slide[] slides
-local function find_slides()
+function M.find_slides()
     local lines = vim.api.nvim_buf_get_lines(0,0,-1,false)
     local inSlide = false
     local curSlide = { bufNu = vim.api.nvim_get_current_buf() }
@@ -92,7 +92,7 @@ end
 ---Finds the the first slide beginning after the cursor line
 ---@return Slide | nil next_slide The next slide found, or nil if none found
 function M.next_slide()
-    local slides = find_slides()
+    local slides = M.find_slides()
     local ln = vim.fn.line('.')
     for _, slide in ipairs(slides) do
         if slide.startLn > ln then
@@ -104,7 +104,7 @@ end
 ---Finds the last slide ending before the cursor line
 ---@return Slide | nil prev_start The last slide ending before the cursor line, or nil if none found
 function M.prev_slide()
-    local slides = find_slides()
+    local slides = M.find_slides()
     local ln = vim.fn.line('.')
     for i=1, #slides do
         if slides[#slides + 1 - i].endLn < ln then
@@ -116,7 +116,7 @@ end
 ---Finds the slide containing the cursor line
 ---@return Slide | nil prev_start The slide containing the cursor line, or nil if none found
 function M.cur_slide()
-    local slides = find_slides()
+    local slides = M.find_slides()
     local ln = vim.fn.line('.')
     for _, slide in ipairs(slides) do
         if slide.endLn > ln then

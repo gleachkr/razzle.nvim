@@ -43,8 +43,11 @@ vim.api.nvim_create_autocmd("User", {
         motion.align_view()
         vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
             callback = function()
-                M.set_layout(nil, slide.slide_height())
-                motion.align_view()
+                local height = slide.slide_height()
+                if height then
+                    M.set_layout(nil, slide.slide_height())
+                    motion.align_view()
+                end
             end,
             group = vim.api.nvim_create_augroup("Razzle", { clear = false})
         })
