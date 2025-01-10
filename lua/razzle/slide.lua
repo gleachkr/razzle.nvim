@@ -56,9 +56,9 @@ SLIDE
 
 ]]
 
-local startMark = vim.regex([[\(^.*SLIDE.*$\)]])
+M.startMark = vim.regex([[\(^.*SLIDE.*$\)]])
 
-local endMark = vim.regex([[\(^.*SLIDE\|FIN.*$\)]])
+M.endMark = vim.regex([[\(^.*SLIDE\|FIN.*$\)]])
 
 ---@class Slide
 ---@field startLn number
@@ -73,7 +73,7 @@ function M.find_slides()
     local curSlide = { bufNu = vim.api.nvim_get_current_buf() }
     local allSlides = {}
     for i, _ in ipairs(lines) do
-        if inSlide and endMark:match_line(0,i - 1) then
+        if inSlide and M.endMark:match_line(0,i - 1) then
             inSlide = false
             if curSlide.startLn and i - curSlide.startLn > 1 then
                 curSlide.endLn = i
@@ -81,7 +81,7 @@ function M.find_slides()
             end
             curSlide = { bufNu = vim.api.nvim_get_current_buf() }
         end
-        if (not inSlide) and startMark:match_line(0,i - 1) then
+        if (not inSlide) and M.startMark:match_line(0,i - 1) then
             curSlide.startLn = i
             inSlide = true
         end
