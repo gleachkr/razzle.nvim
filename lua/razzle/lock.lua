@@ -47,6 +47,14 @@ function M.lock_scroll()
         if s.endLn > ln and s.startLn < ln then
             curSlide = s
             break
+        elseif s.endLn == ln then
+            vim.fn.setpos(".", {0, ln - 1, 1, 0})
+            curSlide = s
+            break
+        elseif s.startLn == ln then
+            vim.fn.setpos(".", {0, ln + 1, 1, 0})
+            curSlide = s
+            break
         end
     end
     if not curSlide then
