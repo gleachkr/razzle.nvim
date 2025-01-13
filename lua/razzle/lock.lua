@@ -49,10 +49,12 @@ function M.lock_scroll()
             break
         elseif s.endLn == ln then
             vim.fn.setpos(".", {0, ln - 1, 1, 0})
+            vim.cmd.doautocmd("User RazzleSlideEnter")
             curSlide = s
             break
         elseif s.startLn == ln then
             vim.fn.setpos(".", {0, ln + 1, 1, 0})
+            vim.cmd.doautocmd("User RazzleSlideEnter")
             curSlide = s
             break
         end
