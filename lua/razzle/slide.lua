@@ -56,14 +56,15 @@ SLIDE
 
 ]]
 
-M.startMark = vim.regex([[\(^.*SLIDE.*$\)]])
+M.startMark = vim.regex([[\(SLIDE\(#\w*\)\?\)]])
 
-M.endMark = vim.regex([[\(^.*SLIDE\|FIN.*$\)]])
+M.endMark = vim.regex([[\(SLIDE\(#\w*\)\?\)\|\(FIN\)]])
 
 ---@class Slide
 ---@field startLn number
 ---@field endLn number
 ---@field bufNu number
+---@field fragment string | nil
 
 ---Generates a list of all the slides in the current buffer
 ---@return Slide[] slides
@@ -73,7 +74,7 @@ function M.find_slides()
     local curSlide = { bufNu = vim.api.nvim_get_current_buf() }
     local allSlides = {}
     for i, _ in ipairs(lines) do
-        if inSlide and M.endMark:match_line(0,i - 1) then
+        if inSlide and M.endMark:match_line(0,i-1) then
             inSlide = false
             if curSlide.startLn and i - curSlide.startLn > 1 then
                 curSlide.endLn = i
@@ -81,8 +82,9 @@ function M.find_slides()
             end
             curSlide = { bufNu = vim.api.nvim_get_current_buf() }
         end
-        if (not inSlide) and M.startMark:match_line(0,i - 1) then
+        if (not inSlide) and M.startMark:match_line(0, i - 1) then
             curSlide.startLn = i
+            curSlide.fragment = vim.fn.getline(i):match("SLIDE#(%w*)")
             inSlide = true
         end
     end
