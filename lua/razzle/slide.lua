@@ -131,6 +131,20 @@ function M.cur_slide()
     end
 end
 
+---Finds the slide with a certain fragment
+---@param fragment string
+---@return Slide | nil prev_start The slide with the fragment line, or nil if none found
+function M.fragment_slide(fragment)
+    local slides = M.find_slides()
+    for _, slide in ipairs(slides) do
+        if slide.fragment == fragment then
+            return slide
+        else
+            return nil
+        end
+    end
+end
+
 ---Calculates the start of the first slide beginning after the cursor line
 ---@return number | nil next_start The line number of the next slide found, or nil if not found.
 function M.next_slide_ln()
@@ -158,7 +172,7 @@ function M.prev_slide_end_ln()
     end
 end
 
----Calculates the start of the slide contianing the cursor
+---Calculates the start of the slide containing the cursor
 ---@return number | nil cur_start  The line number of the start of the current slide, or nil if not found.
 function M.cur_slide_ln()
     local cur = M.cur_slide()
@@ -167,7 +181,7 @@ function M.cur_slide_ln()
     end
 end
 
----Calculates the end of the slide contianing the cursor
+---Calculates the end of the slide containing the cursor
 ---@return number | nil cur_end  The line number of the end of the current slide, or nil if not found
 function M.cur_slide_end_ln()
     local cur = M.cur_slide()

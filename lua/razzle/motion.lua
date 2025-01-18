@@ -59,4 +59,14 @@ function M.align_view()
     end
 end
 
+---Jumps to given slide by fragment
+---@param fragment string
+---@return nil
+function M.find_slide(fragment)
+    local frag_slide = slide.fragment_slide(fragment)
+    if frag_slide then
+        vim.fn.setpos('.', { 0, frag_slide.startLn + 1, 0, 0 })
+    end
+end
+
 return M
