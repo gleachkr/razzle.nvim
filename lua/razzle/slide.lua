@@ -145,51 +145,6 @@ function M.fragment_slide(fragment)
     end
 end
 
----Calculates the start of the first slide beginning after the cursor line
----@return number | nil next_start The line number of the next slide found, or nil if not found.
-function M.next_slide_ln()
-    local next = M.next_slide()
-    if next then
-        return next.startLn
-    end
-end
-
----Calculates the start of the last slide ending before the cursor line
----@return number | nil prev_start The line number of the previous slide found, or nil if not found.
-function M.prev_slide_ln()
-    local prev = M.prev_slide()
-    if prev then
-        return prev.startLn
-    end
-end
-
----Calculates the end of the last slide ending before the cursor line
----@return number | nil prev_end The line number of the end of the previous slide, or nil if not found
-function M.prev_slide_end_ln()
-    local prev = M.prev_slide()
-    if prev then
-        return prev.endLn
-    end
-end
-
----Calculates the start of the slide containing the cursor
----@return number | nil cur_start  The line number of the start of the current slide, or nil if not found.
-function M.cur_slide_ln()
-    local cur = M.cur_slide()
-    if cur then
-        return cur.startLn
-    end
-end
-
----Calculates the end of the slide containing the cursor
----@return number | nil cur_end  The line number of the end of the current slide, or nil if not found
-function M.cur_slide_end_ln()
-    local cur = M.cur_slide()
-    if cur then
-        return cur.endLn
-    end
-end
-
 ---Counts the number of virtual lines in a specified range of a buffer.
 ---@param bufnr number  The buffer number to count virtual lines in.
 ---@param start_line number  The starting line number (1-based).
@@ -223,15 +178,12 @@ end
 ---Calculates the height of the current slide's interior
 ---@return number | nil height The height of the current slide's interior, including virtual lines.
 function M.slide_height()
-    -- Get the line number of the top of the current slide
-    local top = M.cur_slide_ln()
-    -- Get the line number of the end of the current slide
-    local bot = M.cur_slide_end_ln()
+    local cur = M.cur_slide()
     -- Count the number of virtual lines between the top and bottom of the slide
-    if top and bot then
-        local virt = count_virtual_lines(0, top, bot)
+    if cur then
+        local virt = count_virtual_lines(0, cur.startLn, cur.endLn)
         -- Return the total height of the slide, including virtual lines
-        return (bot - top) + virt - 1
+        return (cur.endLn - cur.startLn) + virt - 1
     end
 end
 

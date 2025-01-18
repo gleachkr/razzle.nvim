@@ -28,17 +28,14 @@ function M.start_presentation()
         callback = fire_slide_event,
         group = razzle_slide_group,
     })
-    local pos = slide.cur_slide_ln() --get start marker for current slide
-    if not pos then
+    local cur = slide.cur_slide() --get start marker for current slide
+    if not cur then
         vim.notify("Can't start presentation: cursor must be in a slide", vim.log.levels.ERROR)
     else
-        vim.fn.setpos('.', { 0, pos + 1, 0, 0 }) -- Set cursor position in the current buffer
+        vim.fn.setpos('.', { 0, cur.startLn + 1, 0, 0 }) -- Set cursor position in the current buffer
         vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event
         -- Set the current slide as the active slide
-        vim.w.razzle_active_slide = {
-            lnum = pos,
-            bnum = vim.api.nvim_get_current_buf()
-        }
+        vim.w.razzle_active_slide = cur
     end
 end
 
