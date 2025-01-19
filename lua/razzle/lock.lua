@@ -39,7 +39,7 @@ function M.lock_scroll()
     local slides = slide.find_slides()
     -- If there are no slides, there's nothing to lock (and we might not be in
     -- a buffer where locking makes sense)
-    if #slides == 0 then return end
+    if not slides or #slides == 0 then return end
     -- reuse the slides array 
     local ln = vim.fn.line('.')
     local curSlide
@@ -62,16 +62,7 @@ function M.lock_scroll()
     if not curSlide then
         vim.notify("Can't lock scroll, cursor isn't in a slide", vim.log.levels.ERROR)
     else
-        vim.w.razzle_scroll_bounds = { curSlide.startLn + 1 , curSlide.endLn - 1 }
-        -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
-        vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
-            callback = restrict_cursor_movement,
-            group = vim.api.nvim_create_augroup("Razzle", { clear = false}),
-        })
-        vim.api.nvim_create_autocmd({"WinEnter"}, {
-            callback = restrict_cursor_window,
-            group = vim.api.nvim_create_augroup("Razzle", { clear = false}),
-        })
+        vim.w.razzle_scroll_bounds = { curSlide.startLn + 1, curSlide.endLn - 1 }
     end
 end
 
@@ -99,6 +90,15 @@ vim.api.nvim_create_autocmd("User", {
         vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
             callback = M.lock_scroll,
             group = vim.api.nvim_create_augroup("Razzle", { clear = false})
+        })
+        -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
+        vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
+            callback = restrict_cursor_movement,
+            group = vim.api.nvim_create_augroup("Razzle", { clear = false}),
+        })
+        vim.api.nvim_create_autocmd({"WinEnter"}, {
+            callback = restrict_cursor_window,
+            group = vim.api.nvim_create_augroup("Razzle", { clear = false}),
         })
     end,
     pattern = "RazzleStart"

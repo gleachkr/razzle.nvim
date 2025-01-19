@@ -60,15 +60,17 @@ M.startMark = vim.regex([[\(SLIDE\(#\w*\)\?\)]])
 
 M.endMark = vim.regex([[\(SLIDE\(#\w*\)\?\)\|\(FIN\)]])
 
+M.slides = {}
+
 ---@class Slide
 ---@field startLn number
 ---@field endLn number
 ---@field bufNu number
 ---@field fragment string | nil
 
----Generates a list of all the slides in the current buffer
----@return Slide[] slides
-function M.find_slides()
+---Refreshes the slide data in M.slides for the current buffer
+---@return nil
+function M.buf_refresh_slides()
     local lines = vim.api.nvim_buf_get_lines(0,0,-1,false)
     local inSlide = false
     local curSlide = { bufNu = vim.api.nvim_get_current_buf() }
@@ -88,13 +90,20 @@ function M.find_slides()
             inSlide = true
         end
     end
-    return allSlides
+    M.slides[vim.fn.bufnr("%")] = allSlides
+end
+
+---returns a list of all the slides in the current buffer
+---@return Slide[] slides
+function M.find_slides()
+    return M.slides[vim.fn.bufnr("%")]
 end
 
 ---Finds the the first slide beginning after the cursor line
 ---@return Slide | nil next_slide The next slide found, or nil if none found
 function M.next_slide()
     local slides = M.find_slides()
+    if not slides then return nil end
     local ln = vim.fn.line('.')
     for _, slide in ipairs(slides) do
         if slide.startLn > ln then
@@ -107,6 +116,7 @@ end
 ---@return Slide | nil prev_start The last slide ending before the cursor line, or nil if none found
 function M.prev_slide()
     local slides = M.find_slides()
+    if not slides then return nil end
     local ln = vim.fn.line('.')
     for i=1, #slides do
         if slides[#slides + 1 - i].endLn < ln then
@@ -119,6 +129,7 @@ end
 ---@return Slide | nil prev_start The slide containing the cursor line, or nil if none found
 function M.cur_slide()
     local slides = M.find_slides()
+    if not slides then return nil end
     local ln = vim.fn.line('.')
     for _, slide in ipairs(slides) do
         if slide.endLn > ln then
@@ -133,9 +144,10 @@ end
 
 ---Finds the slide with a certain fragment
 ---@param fragment string
----@return Slide | nil prev_start The slide with the fragment line, or nil if none found
+---@return Slide | nil prev_start The slide with the fragment line (in the current buffer), or nil if none found
 function M.fragment_slide(fragment)
     local slides = M.find_slides()
+    if not slides then return nil end
     for _, slide in ipairs(slides) do
         if slide.fragment == fragment then
             return slide

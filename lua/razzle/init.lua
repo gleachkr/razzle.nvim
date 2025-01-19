@@ -22,16 +22,22 @@ end
 ---Starts the presentation by setting up autocmds and triggering the start event.
 ---@return nil
 function M.start_presentation()
-    local razzle_slide_group = vim.api.nvim_create_augroup("Razzle", { clear = true })
-    -- fire slide events on move to a new window
-    vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
-        callback = fire_slide_event,
-        group = razzle_slide_group,
-    })
+    slide.buf_refresh_slides()
     local cur = slide.cur_slide() --get start marker for current slide
     if not cur then
         vim.notify("Can't start presentation: cursor must be in a slide", vim.log.levels.ERROR)
     else
+        local razzle_slide_group = vim.api.nvim_create_augroup("Razzle", { clear = true })
+        -- fire slide events on move to a new window
+        vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
+            callback = fire_slide_event,
+            group = razzle_slide_group,
+        })
+        -- update slide data when text changes
+        vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
+            callback = slide.buf_refresh_slides,
+            group = razzle_slide_group
+        })
         vim.fn.setpos('.', { 0, cur.startLn + 1, 0, 0 }) -- Set cursor position in the current buffer
         vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event
         -- Set the current slide as the active slide

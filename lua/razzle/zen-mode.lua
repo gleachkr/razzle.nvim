@@ -41,11 +41,11 @@ vim.api.nvim_create_autocmd("User", {
         vim.opt.scrolloff = 0
         zen.open({window = { height=slide.slide_height(), width=80 }})
         motion.align_view()
-        vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI", "SafeState"}, {
+        vim.api.nvim_create_autocmd({"SafeState"}, {
             callback = function()
                 local height = slide.slide_height()
                 if height then
-                    M.set_layout(nil, slide.slide_height())
+                    M.set_layout(nil, height)
                     motion.align_view()
                 end
             end,
