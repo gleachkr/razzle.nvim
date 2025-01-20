@@ -68,12 +68,14 @@ M.slides = {}
 ---@field bufNu number
 ---@field fragment string | nil
 
----Refreshes the slide data in M.slides for the current buffer
+---Refreshes the slide data in M.slides for the given buffer
+---@param buf number
 ---@return nil
-function M.buf_refresh_slides()
-    local lines = vim.api.nvim_buf_get_lines(0,0,-1,false)
+function M.refresh_slides(buf)
+    if not vim.api.nvim_buf_is_loaded(buf) then return end
+    local lines = vim.api.nvim_buf_get_lines(buf,0,-1,false)
     local inSlide = false
-    local curSlide = { bufNu = vim.api.nvim_get_current_buf() }
+    local curSlide = { bufNu = buf }
     local allSlides = {}
     for i, _ in ipairs(lines) do
         if inSlide and M.endMark:match_line(0,i-1) then
@@ -82,7 +84,7 @@ function M.buf_refresh_slides()
                 curSlide.endLn = i
                 allSlides[#allSlides + 1] = curSlide
             end
-            curSlide = { bufNu = vim.api.nvim_get_current_buf() }
+            curSlide = { bufNu = buf }
         end
         if (not inSlide) and M.startMark:match_line(0, i - 1) then
             curSlide.startLn = i
@@ -90,13 +92,13 @@ function M.buf_refresh_slides()
             inSlide = true
         end
     end
-    M.slides[vim.fn.bufnr("%")] = allSlides
+    M.slides[buf] = allSlides
 end
 
 ---returns a list of all the slides in the current buffer
 ---@return Slide[] slides
 function M.find_slides()
-    return M.slides[vim.fn.bufnr("%")]
+    return M.slides[vim.api.nvim_get_current_buf()]
 end
 
 ---Finds the the first slide beginning after the cursor line

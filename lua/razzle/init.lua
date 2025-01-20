@@ -22,7 +22,7 @@ end
 ---Starts the presentation by setting up autocmds and triggering the start event.
 ---@return nil
 function M.start_presentation()
-    slide.buf_refresh_slides()
+    slide.refresh_slides(vim.api.nvim_get_current_buf())
     local cur = slide.cur_slide() --get start marker for current slide
     if not cur then
         vim.notify("Can't start presentation: cursor must be in a slide", vim.log.levels.ERROR)
@@ -35,7 +35,7 @@ function M.start_presentation()
         })
         -- update slide data when text changes
         vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
-            callback = slide.buf_refresh_slides,
+            callback = function () slide.refresh_slides(vim.api.nvim_get_current_buf()) end,
             group = razzle_slide_group
         })
         vim.fn.setpos('.', { 0, cur.startLn + 1, 0, 0 }) -- Set cursor position in the current buffer
