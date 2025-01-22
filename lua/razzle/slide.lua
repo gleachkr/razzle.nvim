@@ -152,17 +152,9 @@ end
 
 ---Finds the slide with a certain fragment
 ---@param fragment string
----@return Slide | nil prev_start The slide with the fragment line (in the current buffer), or nil if none found
+---@return Slide | nil prev_start The slide with the fragment line, or nil if none found
 function M.fragment_slide(fragment)
-    local slides = M.find_slides()
-    if not slides then return nil end
-    for _, slide in ipairs(slides) do
-        if slide.fragment == fragment then
-            return slide
-        else
-            return nil
-        end
-    end
+    return M.slidesByFrag[fragment]
 end
 
 ---Counts the number of virtual lines in a specified range of a buffer.
