@@ -11,7 +11,7 @@ states should be unrepresentable. So, more precisely, a slide is:
 
     A sequence of one or more contiguous lines, 
 
-    a. preceded by a line contianing a slide-marker, 
+    a. preceded by a line containing a slide-marker, 
     b. not containing any lines that contain end-markers or slide-markers, and 
     c. not containing any slides as parts.
 
@@ -60,7 +60,9 @@ M.startMark = vim.regex([[\(SLIDE\(#\w*\)\?\)]])
 
 M.endMark = vim.regex([[\(SLIDE\(#\w*\)\?\)\|\(FIN\)]])
 
-M.slides = {}
+M.slidesByBuf = {}
+
+M.slidesByFrag = {}
 
 ---@class Slide
 ---@field startLn number
@@ -82,23 +84,27 @@ function M.refresh_slides(buf)
             inSlide = false
             if curSlide.startLn and i - curSlide.startLn > 1 then
                 curSlide.endLn = i
-                allSlides[#allSlides + 1] = curSlide
             end
             curSlide = { bufNu = buf }
         end
         if (not inSlide) and M.startMark:match_line(0, i - 1) then
             curSlide.startLn = i
             curSlide.fragment = vim.fn.getline(i):match("SLIDE#(%w*)")
+            if curSlide.fragment then
+                M.slidesByFrag[curSlide.fragment] = curSlide
+            end
+            allSlides[#allSlides + 1] = curSlide
             inSlide = true
         end
     end
-    M.slides[buf] = allSlides
+    if not curSlide.endLn then curSlide.endLn = #lines + 1 end
+    M.slidesByBuf[buf] = allSlides
 end
 
 ---returns a list of all the slides in the current buffer
 ---@return Slide[] slides
 function M.find_slides()
-    return M.slides[vim.api.nvim_get_current_buf()]
+    return M.slidesByBuf[vim.api.nvim_get_current_buf()]
 end
 
 ---Finds the the first slide beginning after the cursor line
