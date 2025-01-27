@@ -69,8 +69,30 @@ M.slidesByFrag = {}
 ---@field endLn number
 ---@field bufNu number
 ---@field fragment string | nil
----@field params string | nil
+---@field params table<string, string|table<string,string>> | nil
 ---@field attrib string | nil
+
+---@param queryString string
+---@return table<string, string|table<string,string>>
+local function parseQueryString(queryString)
+    local params = {}
+
+    for pair in queryString:gmatch("([^&]+)") do
+        local key, value = pair:match("([^=]+)=?(.*)")
+        if key then
+            if params[key] then
+                if type(params[key]) ~= "table" then
+                    params[key] = {params[key]}
+                end
+                table.insert(params[key], value)
+            else
+                params[key] = value
+            end
+        end
+    end
+
+    return params
+end
 
 ---Refreshes the slide data in M.slides for the given buffer
 ---@param buf number
@@ -91,8 +113,12 @@ function M.refresh_slides(buf)
         end
         if (not inSlide) and M.startMark:match_line(0, i - 1) then
             curSlide.startLn = i
-            curSlide.params, curSlide.fragment = vim.fn.getline(i):match("SLIDE%??([^#%s]*)#?(%S*)")
-            if curSlide.fragment then
+            local params, fragment = vim.fn.getline(i):match("SLIDE%??([^#%s]*)#?(%S*)")
+            if params then
+                curSlide.params = parseQueryString(params)
+            end
+            if fragment then
+                curSlide.fragment = fragment
                 M.slidesByFrag[curSlide.fragment] = curSlide
             end
             allSlides[#allSlides + 1] = curSlide
