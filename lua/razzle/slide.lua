@@ -69,6 +69,8 @@ M.slidesByFrag = {}
 ---@field endLn number
 ---@field bufNu number
 ---@field fragment string | nil
+---@field params string | nil
+---@field attrib string | nil
 
 ---Refreshes the slide data in M.slides for the given buffer
 ---@param buf number
@@ -89,7 +91,7 @@ function M.refresh_slides(buf)
         end
         if (not inSlide) and M.startMark:match_line(0, i - 1) then
             curSlide.startLn = i
-            curSlide.fragment = vim.fn.getline(i):match("SLIDE#(%w*)")
+            curSlide.params, curSlide.fragment = vim.fn.getline(i):match("SLIDE%??([^#%s]*)#?(%S*)")
             if curSlide.fragment then
                 M.slidesByFrag[curSlide.fragment] = curSlide
             end
