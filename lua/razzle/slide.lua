@@ -104,14 +104,14 @@ function M.refresh_slides(buf)
     local curSlide = { bufNu = buf }
     local allSlides = {}
     for i, _ in ipairs(lines) do
-        if inSlide and M.endMark:match_line(0,i-1) then
+        if inSlide and M.endMark:match_line(buf, i - 1) then
             inSlide = false
             if curSlide.startLn and i - curSlide.startLn > 1 then
                 curSlide.endLn = i
             end
             curSlide = { bufNu = buf }
         end
-        if (not inSlide) and M.startMark:match_line(0, i - 1) then
+        if (not inSlide) and M.startMark:match_line(buf, i - 1) then
             curSlide.startLn = i
             local params, fragment = vim.fn.getline(i):match("SLIDE%??([^#%s]*)#?(%S*)")
             if params then
