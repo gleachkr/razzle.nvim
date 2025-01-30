@@ -70,7 +70,6 @@ M.slidesByFrag = {}
 ---@field bufNu number
 ---@field fragment string | nil
 ---@field params table<string, string|table<string,string>> | nil
----@field attrib string | nil
 
 ---@param queryString string
 ---@return table<string, string|table<string,string>>
@@ -98,7 +97,6 @@ end
 ---@param buf number
 ---@return nil
 function M.refresh_slides(buf)
-    if not vim.api.nvim_buf_is_loaded(buf) then return end
     local lines = vim.api.nvim_buf_get_lines(buf,0,-1,false)
     local inSlide = false
     local curSlide = { bufNu = buf }
@@ -141,11 +139,19 @@ function M.next_slide()
     local slides = M.find_slides()
     if not slides then return nil end
     local ln = vim.fn.line('.')
+    local cur, next
     for _, slide in ipairs(slides) do
-        if slide.startLn > ln then
-            return slide
+        if slide.startLn > ln and not next then
+            next = slide
+        end
+        if slide.endLn > ln and slide.startLn < ln then
+            cur = slide
         end
     end
+    if cur and cur.params and cur.params["next"] then
+        next = M.slidesByFrag[cur.params["next"]]
+    end
+    return next
 end
 
 ---Finds the last slide ending before the cursor line
@@ -154,11 +160,20 @@ function M.prev_slide()
     local slides = M.find_slides()
     if not slides then return nil end
     local ln = vim.fn.line('.')
+    local cur, prev, slide
     for i=1, #slides do
-        if slides[#slides + 1 - i].endLn < ln then
-            return slides[#slides + 1 - i]
+        slide = slides[#slides + 1 - i]
+        if slide.endLn < ln and not prev then
+            prev = slide
+        end
+        if slide.endLn > ln and slide.startLn < ln then
+            cur = slide
         end
     end
+    if cur and cur.params and cur.params["prev"] then
+        prev = M.slidesByFrag[cur.params["prev"]]
+    end
+    return prev
 end
 
 ---Finds the slide containing the cursor line

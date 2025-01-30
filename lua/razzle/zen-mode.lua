@@ -38,11 +38,12 @@ vim.api.nvim_create_autocmd("User", {
 
 vim.api.nvim_create_autocmd("User", {
     callback = function()
-        vim.opt.scrolloff = 0
         zen.open({window = { height=slide.slide_height(), width=80 }})
+        vim.opt_local.scrolloff = 0
         motion.align_view()
         vim.api.nvim_create_autocmd({"SafeState"}, {
             callback = function()
+                vim.opt_local.scrolloff = 0
                 local height = slide.slide_height()
                 if height then
                     M.set_layout(nil, height)

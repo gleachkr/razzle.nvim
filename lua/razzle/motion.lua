@@ -11,6 +11,7 @@ function M.next_slide()
     local next = slide.next_slide()
     -- Set the cursor position to the next slide
     if next then
+        vim.api.nvim_set_current_buf(next.bufNu)
         vim.fn.setpos('.', { 0, next.startLn + 1, 0, 0 })
     else
         vim.notify("Can't move to next slide, no next slide found", vim.log.levels.ERROR)
@@ -24,6 +25,7 @@ function M.prev_slide()
     local prev = slide.prev_slide()
     -- Set the cursor position to the previous slide's line
     if prev then
+        vim.api.nvim_set_current_buf(prev.bufNu)
         vim.fn.setpos('.', { 0, prev.startLn + 1, 0, 0 })
     else
         vim.notify("Can't move to previous slide, no next slide found", vim.log.levels.ERROR)
@@ -64,6 +66,7 @@ end
 function M.find_slide(fragment)
     local frag_slide = slide.fragment_slide(fragment)
     if frag_slide then
+        vim.api.nvim_set_current_buf(frag_slide.bufNu)
         vim.fn.setpos('.', { 0, frag_slide.startLn + 1, 0, 0 })
     end
 end
