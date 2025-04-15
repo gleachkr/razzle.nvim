@@ -23,6 +23,4 @@ function M.slidesToHTML()
     end
 end
 
-GLOBAL = M
-
 return M
