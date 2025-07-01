@@ -35,6 +35,7 @@ function M.start_presentation()
         end
     end
     vim.api.nvim_set_current_buf(cur_buf)
+    vim.cmd[[silent! edit]]
     local cur = slide.cur_slide() --get start marker for current slide
     if not cur then
         vim.notify("Can't start presentation: cursor must be in a slide", vim.log.levels.ERROR)
