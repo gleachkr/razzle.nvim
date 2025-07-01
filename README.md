@@ -33,12 +33,12 @@ presentation style per-presentation.
 
 Available modules:
 
-Name     Description 
--------- ---------------------------------------------------------------------
-conceal  Conceals lines containing slide markers while presentation is active
-lock     Restricts cursor movement to within slides
-zen-mode Integrates with [folke/zen-mode](https://github.com/folke/zen-mode) to center and isolate the current slide
-motion   Provides slide navigation functions
+| Name     | Description |
+| -------- | --------------------------------------------------------------------- |
+| conceal  | Conceals lines containing slide markers while presentation is active |
+| lock     | Restricts cursor movement to within slides |
+| zen-mode | Integrates with [folke/zen-mode](https://github.com/folke/zen-mode) to center and isolate the current slide |
+| motion   | Provides slide navigation functions |
 
 ## Example
 
