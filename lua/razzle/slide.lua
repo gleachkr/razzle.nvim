@@ -56,9 +56,9 @@ SLIDE
 
 ]]
 
-M.startMark = vim.regex([[\(SLIDE\(#\w*\)\?\)]])
+M.startMark = vim.regex([[SLIDE]])
 
-M.endMark = vim.regex([[\(SLIDE\(#\w*\)\?\)\|\(FIN\)]])
+M.endMark = vim.regex([[\(SLIDE\)\|\(FIN\)]])
 
 M.slidesByBuf = {}
 
