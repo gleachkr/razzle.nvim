@@ -99,18 +99,18 @@ end
 function M.refresh_slides(buf)
     local lines = vim.api.nvim_buf_get_lines(buf,0,-1,false)
     local inSlide = false
-    local curSlide = { bufNu = buf }
     local allSlides = {}
+    local curSlide
     for i, _ in ipairs(lines) do
         if inSlide and M.endMark:match_line(buf, i - 1) then
             inSlide = false
             if curSlide.startLn and i - curSlide.startLn > 1 then
                 curSlide.endLn = i
+                allSlides[#allSlides + 1] = curSlide
             end
-            curSlide = { bufNu = buf }
         end
         if (not inSlide) and M.startMark:match_line(buf, i - 1) then
-            curSlide.startLn = i
+            curSlide = { bufNu = buf, startLn = i }
             local params, fragment = vim.fn.getline(i):match("SLIDE%??([^#%s]*)#?(%S*)")
             if params then
                 curSlide.params = parseQueryString(params)
@@ -119,11 +119,13 @@ function M.refresh_slides(buf)
                 curSlide.fragment = fragment
                 M.slidesByFrag[curSlide.fragment] = curSlide
             end
-            allSlides[#allSlides + 1] = curSlide
             inSlide = true
         end
     end
-    if not curSlide.endLn then curSlide.endLn = #lines + 1 end
+    if curSlide and not curSlide.endLn then
+        curSlide.endLn = #lines + 1
+        allSlides[#allSlides + 1] = curSlide
+    end
     M.slidesByBuf[buf] = allSlides
 end
 
