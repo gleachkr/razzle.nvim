@@ -28,7 +28,7 @@ function M.prev_slide()
         vim.api.nvim_set_current_buf(prev.bufNu)
         vim.fn.setpos('.', { 0, prev.startLn + 1, 0, 0 })
     else
-        vim.notify("Can't move to previous slide, no next slide found", vim.log.levels.ERROR)
+        vim.notify("Can't move to previous slide, no prev slide found", vim.log.levels.ERROR)
     end
 end
 
