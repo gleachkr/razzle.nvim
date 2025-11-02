@@ -97,6 +97,11 @@ end
 ---@param buf number
 ---@return nil
 function M.refresh_slides(buf)
+    -- Clear any fragment mappings that pointed into this buffer
+    for frag, s in pairs(M.slidesByFrag) do
+        if s.bufNu == buf then M.slidesByFrag[frag] = nil end
+    end
+
     local lines = vim.api.nvim_buf_get_lines(buf,0,-1,false)
     local inSlide = false
     local allSlides = {}
@@ -112,10 +117,10 @@ function M.refresh_slides(buf)
         if (not inSlide) and M.startMark:match_line(buf, i - 1) then
             curSlide = { bufNu = buf, startLn = i }
             local params, fragment = lines[i]:match("SLIDE%??([^#%s]*)#?(%S*)")
-            if params then
+            if params and params ~= "" then
                 curSlide.params = parseQueryString(params)
             end
-            if fragment then
+            if fragment and fragment ~= "" then
                 curSlide.fragment = fragment
                 M.slidesByFrag[curSlide.fragment] = curSlide
             end
