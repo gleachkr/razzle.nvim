@@ -135,7 +135,7 @@ function M.refresh_slides(buf)
 end
 
 ---returns a list of all the slides in the current buffer
----@return Slide[] slides
+---@return Slide[] | nil slides
 function M.find_slides()
     return M.slidesByBuf[vim.api.nvim_get_current_buf()]
 end
@@ -207,46 +207,98 @@ function M.fragment_slide(fragment)
     return M.slidesByFrag[fragment]
 end
 
----Counts the number of virtual lines in a specified range of a buffer.
----@param bufnr number  The buffer number to count virtual lines in.
----@param start_line number  The starting line number (1-based).
----@param end_line number  The ending line number (1-based).
----@return number total_virt_lines  The total number of virtual lines in the specified range.
-local function count_virtual_lines(bufnr, start_line, end_line)
-    -- Convert to 0-based indices
-    local start_pos = {start_line - 1, 0}
-    local end_pos = {end_line - 1, -1}
-    local total_virt_lines = 0
-
-    -- Get all extmarks in range
-    local marks = vim.api.nvim_buf_get_extmarks(
-        bufnr,
-        -1,  -- Use any namespace
-        start_pos,
-        end_pos,
-        {details = true}
-    )
-
-    -- Loop through marks and count virtual lines
-    for _, mark in ipairs(marks) do
-        local details = mark[4]
-        if details and details.virt_lines then
-            total_virt_lines = total_virt_lines + #details.virt_lines
+---Count virtual lines on visible lines in a given range (current window)
+---@param bufnr number
+---@param start_line number 1-based inclusive
+---@param end_line number   1-based inclusive
+---@return number
+local function count_visible_virtual_lines(bufnr, start_line, end_line)
+    local total = 0
+    local ns_map = vim.api.nvim_get_namespaces()
+    for _, ns_id in pairs(ns_map) do
+        local marks = vim.api.nvim_buf_get_extmarks(
+            bufnr,
+            ns_id,
+            {start_line - 1, 0},
+            {end_line - 1, -1},
+            { details = true }
+        )
+        for _, mark in ipairs(marks) do
+            local row = mark[2] -- 0-based
+            if vim.fn.foldclosed(row + 1) == -1 then
+                local details = mark[4]
+                if details and details.virt_lines then
+                    total = total + #details.virt_lines
+                end
+            end
         end
     end
-    return total_virt_lines
+    return total
 end
 
----Calculates the height of the current slide's interior
----@return number | nil height The height of the current slide's interior, including virtual lines.
+---Count visible screen lines between two buffer lines, respecting folds.
+---Closed folds are counted as a single screen line.
+---@param start_line number 1-based inclusive
+---@param end_line number   1-based inclusive
+---@return number
+local function count_visible_lines(start_line, end_line)
+    local visible = 0
+    local l = start_line
+    while l <= end_line do
+        local fc = vim.fn.foldclosed(l)
+        visible = visible + 1
+        if fc ~= -1 then
+            l = vim.fn.foldclosedend(l) + 1
+        else
+            l = l + 1
+        end
+    end
+    return visible
+end
+
+---Open folds that include the start and end markers of the slide.
+---@param start_mark number 1-based start marker line (cur.startLn)
+---@param end_mark number 1-based end marker line (cur.endLn)
+local function ensure_marker_folds_visible(start_mark, end_mark)
+    local win = 0
+    local save = vim.api.nvim_win_get_cursor(win)
+    local line_count = vim.api.nvim_buf_line_count(0)
+
+    local function open_at(lnum)
+        if lnum >= 1 and lnum <= line_count and vim.fn.foldclosed(lnum) ~= -1 then
+            vim.api.nvim_win_set_cursor(win, {lnum, 0})
+            vim.cmd('silent! normal! zv')
+        end
+    end
+
+    open_at(start_mark)
+    open_at(end_mark)
+
+    vim.api.nvim_win_set_cursor(win, save)
+end
+
+---Calculates the height of the current slide's interior.
+---Accounts for virtual lines and closed folds. Folds that include the
+---marker endpoints are opened to avoid degenerate displays.
+---@return number | nil height
 function M.slide_height()
     local cur = M.cur_slide()
-    -- Count the number of virtual lines between the top and bottom of the slide
-    if cur then
-        local virt = count_virtual_lines(0, cur.startLn, cur.endLn)
-        -- Return the total height of the slide, including virtual lines
-        return (cur.endLn - cur.startLn) + virt - 1
-    end
+    if not cur then return nil end
+
+    -- Open folds that include the slide's marker lines
+    ensure_marker_folds_visible(cur.startLn, cur.endLn)
+
+    local top = cur.startLn + 1
+    local bot = cur.endLn - 1
+    if top > bot then return 0 end
+
+    -- Visible buffer lines between interior endpoints
+    local visible = count_visible_lines(top, bot)
+
+    -- Virtual lines on visible (non-folded) lines only
+    local virt = count_visible_virtual_lines(0, top, bot)
+
+    return visible + virt
 end
 
 return M
