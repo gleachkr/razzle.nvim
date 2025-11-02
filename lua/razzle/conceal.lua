@@ -10,12 +10,12 @@ function M.conceal_slide_markers()
 
     --for regular syntax
     vim.cmd([[
-        syntax match SlideMarker /^.*\(SLIDE\|FIN\).*$/ containedin=ALL
+        syntax match SlideMarker /^.*\(SLIDE\C\|FIN\C\).*$/ containedin=ALL
     ]])
     vim.cmd('highlight link SlideMarker ConcealLine')
 
     --for treesitter
-    vim.fn.matchadd('ConcealLine',[[^.*\(SLIDE\|FIN\).*$]])
+    vim.fn.matchadd('ConcealLine',[[^.*\(SLIDE\C\|FIN\C\).*$]])
 end
 
 ---Reveals slide markers in the current buffer.
