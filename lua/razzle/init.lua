@@ -22,20 +22,24 @@ end
 ---Starts the presentation by setting up autocmds and triggering the start event.
 ---@return nil
 function M.start_presentation()
-    local cur_buf = vim.api.nvim_get_current_buf()
+    -- Scan all normal buffers without switching windows.
+    local saved_eventignore = vim.o.eventignore
+    vim.o.eventignore = "all"
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_is_valid(buf) then
-            vim.o.eventignore = "all"
-            vim.api.nvim_buf_call(buf, function ()
-                vim.cmd[[silent! edit]]
-                slide.refresh_slides(buf)
-                vim.cmd[[silent! bunload]]
-            end)
-            vim.o.eventignore = ""
+      if vim.api.nvim_buf_is_valid(buf)
+      and vim.api.nvim_get_option_value("buftype", { buf = buf}) == "" then
+        local was_loaded = vim.api.nvim_buf_is_loaded(buf)
+        if not was_loaded then
+          vim.fn.bufload(buf)
         end
+        slide.refresh_slides(buf)
+        if not was_loaded then
+          vim.api.nvim_buf_delete(buf, { unload = true })
+        end
+      end
     end
-    vim.api.nvim_set_current_buf(cur_buf)
-    vim.cmd[[silent! edit]]
+    vim.o.eventignore = saved_eventignore
+
     local cur = slide.cur_slide() --get start marker for current slide
     if not cur then
         vim.notify("Can't start presentation: cursor must be in a slide", vim.log.levels.ERROR)

@@ -111,7 +111,7 @@ function M.refresh_slides(buf)
         end
         if (not inSlide) and M.startMark:match_line(buf, i - 1) then
             curSlide = { bufNu = buf, startLn = i }
-            local params, fragment = vim.fn.getline(i):match("SLIDE%??([^#%s]*)#?(%S*)")
+            local params, fragment = lines[i]:match("SLIDE%??([^#%s]*)#?(%S*)")
             if params then
                 curSlide.params = parseQueryString(params)
             end
@@ -225,7 +225,7 @@ local function count_virtual_lines(bufnr, start_line, end_line)
     -- Loop through marks and count virtual lines
     for _, mark in ipairs(marks) do
         local details = mark[4]
-        if details.virt_lines then
+        if details and details.virt_lines then
             total_virt_lines = total_virt_lines + #details.virt_lines
         end
     end
