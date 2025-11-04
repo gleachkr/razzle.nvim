@@ -49,12 +49,18 @@ function M.lock_scroll()
             break
         elseif s.endLn == ln then
             vim.fn.setpos(".", {0, ln - 1, 1, 0})
-            vim.cmd.doautocmd("User RazzleSlideEnter")
+            vim.api.nvim_exec_autocmds("User", {
+                pattern = "RazzleSlideEnter",
+                data = { entered = s }
+            })
             curSlide = s
             break
         elseif s.startLn == ln then
             vim.fn.setpos(".", {0, ln + 1, 1, 0})
-            vim.cmd.doautocmd("User RazzleSlideEnter")
+            vim.api.nvim_exec_autocmds("User", {
+                pattern = "RazzleSlideEnter",
+                data = { entered = s }
+            })
             curSlide = s
             break
         end
@@ -74,6 +80,7 @@ function M.unlock_scroll()
 end
 
 vim.api.nvim_create_autocmd("User", {
+    -- TODO: reuse current slide from event data
     callback = M.lock_scroll,
     pattern = "RazzleSlideEnter",
 })

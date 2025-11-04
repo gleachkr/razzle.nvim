@@ -15,7 +15,10 @@ local function fire_slide_event()
     and pos[2] < cur.endLn
     then
         vim.w.razzle_active_slide = cur
-        vim.cmd.doautocmd("User RazzleSlideEnter") -- Trigger the User RazzleSlideChanged
+        vim.api.nvim_exec_autocmds("User",{
+            pattern = "RazzleSlideEnter",
+            data = { entered = cur }
+        })
     end
 end
 
@@ -56,7 +59,10 @@ function M.start_presentation()
             group = razzle_slide_group
         })
         vim.fn.setpos('.', { 0, cur.startLn + 1, 0, 0 }) -- Set cursor position in the current buffer
-        vim.cmd.doautocmd("User RazzleStart") -- Trigger the User RazzleStart event
+        vim.api.nvim_exec_autocmds("User",{
+            pattern = "RazzleStart",
+            data = { entered = cur }
+        })
         -- Set the current slide as the active slide
         vim.w.razzle_active_slide = cur
     end
