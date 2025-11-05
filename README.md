@@ -37,7 +37,7 @@ Available modules:
 | -------- | --------------------------------------------------------------------- |
 | conceal  | Conceals lines containing slide markers while presentation is active |
 | lock     | Restricts cursor movement to within slides |
-| zen-mode | Integrates with [folke/zen-mode](https://github.com/folke/zen-mode) to center and isolate the current slide |
+| zen-mode | Built-in zen view: centers current slide in a floating window with a solid backdrop |
 | motion   | Provides slide navigation functions |
 
 ## Example
@@ -54,4 +54,19 @@ motion = require("razzle.motion")
 vim.keymap.set("n", "]S", motion.next_slide)
 vim.keymap.set("n", "[S", motion.prev_slide)
 ```
+
+### Zen mode configuration
+
+The built-in zen mode has a simple configuration API:
+
+```lua
+require("razzle.zen-mode").setup({
+  backdrop = {
+    blend = 30,        -- 0..100: how much to blend towards target color
+    color = "#000000", -- target color to blend towards (default black)
+  },
+})
+```
+
+Clicking the backdrop does nothing and keeps focus in the slide window.
 
