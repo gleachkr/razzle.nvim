@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Razzle.nvim</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Razzle.nvim</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#razzlenvim" id="toc-razzlenvim">Razzle.nvim</a>
+<ul>
+<li><a href="#tldr-razzletldr" id="toc-tldr-razzletldr">TL;DR
+{#razzle.tldr}</a></li>
+<li><a href="#concepts-razzleconcepts"
+id="toc-concepts-razzleconcepts">Concepts {#razzle.concepts}</a>
+<ul>
+<li><a href="#slide-markers-with-params-and-fragments-razzlemarkers"
+id="toc-slide-markers-with-params-and-fragments-razzlemarkers">Slide
+markers with params and fragments {#razzle.markers}</a></li>
+</ul></li>
+<li><a href="#events-razzleevents" id="toc-events-razzleevents">Events
+{#razzle.events}</a></li>
+<li><a href="#commands-and-api-razzleapi"
+id="toc-commands-and-api-razzleapi">Commands and API {#razzle.api}</a>
+<ul>
+<li><a href="#razzlestart-razzlecmdstart"
+id="toc-razzlestart-razzlecmdstart">:RazzleStart
+{#razzle.cmd.start}</a></li>
+<li><a href="#razzleend-razzlecmdend"
+id="toc-razzleend-razzlecmdend">:RazzleEnd {#razzle.cmd.end}</a></li>
+<li><a href="#requirerazzlestart_presentation-razzlestart"
+id="toc-requirerazzlestart_presentation-razzlestart">require(“razzle”).start_presentation()
+{#razzle.start}</a></li>
+<li><a href="#requirerazzleend_presentation-razzleend"
+id="toc-requirerazzleend_presentation-razzleend">require(“razzle”).end_presentation()
+{#razzle.end}</a></li>
+</ul></li>
+<li><a href="#modules-razzlemodules"
+id="toc-modules-razzlemodules">Modules {#razzle.modules}</a>
+<ul>
+<li><a href="#motion-razzlemotion" id="toc-motion-razzlemotion">motion
+{#razzle.motion}</a></li>
+<li><a href="#conceal-razzleconceal"
+id="toc-conceal-razzleconceal">conceal {#razzle.conceal}</a></li>
+<li><a href="#lock-razzlelock" id="toc-lock-razzlelock">lock
+{#razzle.lock}</a></li>
+<li><a href="#zen-mode-razzlezen-mode"
+id="toc-zen-mode-razzlezen-mode">zen-mode {#razzle.zen-mode}</a></li>
+<li><a href="#term-optional-razzleterm"
+id="toc-term-optional-razzleterm">term (optional)
+{#razzle.term}</a></li>
+<li><a href="#html-experimental-razzlehtml"
+id="toc-html-experimental-razzlehtml">html (experimental)
+{#razzle.html}</a></li>
+</ul></li>
+<li><a href="#slide-detection-details-razzleslides"
+id="toc-slide-detection-details-razzleslides">Slide detection details
+{#razzle.slides}</a></li>
+<li><a href="#faq-razzlefaq" id="toc-faq-razzlefaq">FAQ
+{#razzle.faq}</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="razzlenvim">Razzle.nvim</h1>
+<p>Terminal slide presentations in Neovim.</p>
+<h2 id="tldr-razzletldr">TL;DR {#razzle.tldr}</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Start a presentation (cursor must be inside a slide)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle&quot;</span><span class="op">).</span>start_presentation<span class="op">()</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- Optional helpers</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.lock&quot;</span><span class="op">)</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.conceal&quot;</span><span class="op">)</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.zen-mode&quot;</span><span class="op">)</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- Optional: return to the deck after a terminal closes</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">-- require(&quot;razzle.term&quot;)</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">motion</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.motion&quot;</span><span class="op">)</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;]S&quot;</span><span class="op">,</span> <span class="va">motion</span><span class="op">.</span><span class="va">next_slide</span><span class="op">)</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;[S&quot;</span><span class="op">,</span> <span class="va">motion</span><span class="op">.</span><span class="va">prev_slide</span><span class="op">)</span></span></code></pre></div>
+<p>Slides are delimited by lines that contain <code>SLIDE</code> and an
+ending marker.</p>
+<h2 id="concepts-razzleconcepts">Concepts {#razzle.concepts}</h2>
+<p>A slide begins at a line containing <code>SLIDE</code> (may be in a
+comment) and ends at the next line that contains either
+<code>SLIDE</code> or <code>FIN</code>. The interior of a slide is the
+text strictly between those markers. Slides can be any text: markdown,
+code, plain text. During a presentation, entering a slide fires
+|RazzleSlideEnter|. Razzle ships small modules that help with
+view/layout and navigation. Put razzle setup in a Session file or
+<code>.nvim.lua</code> to style each presentation.</p>
+<h3 id="slide-markers-with-params-and-fragments-razzlemarkers">Slide
+markers with params and fragments {#razzle.markers}</h3>
+<p><code>SLIDE</code> lines can carry an optional query string and an
+optional fragment:</p>
+<pre><code>SLIDE?key=value&amp;k2=v2#my-fragment</code></pre>
+<ul>
+<li>Params become a table on the slide object, e.g.
+<code>slide.params.next</code>.</li>
+<li>Fragment becomes <code>slide.fragment</code> and is used by
+|razzle.motion.find|.</li>
+<li>If the current slide has <code>next</code> or <code>prev</code>
+params, they override linear navigation by naming the fragment of the
+target slide. Example:</li>
+</ul>
+<pre><code>SLIDE#intro
+... intro content ...
+FIN
+
+SLIDE?next=section-2#section-1
+... section 1 ...
+SLIDE#section-2
+... section 2 ...
+FIN</code></pre>
+<h2 id="events-razzleevents">Events {#razzle.events}</h2>
+<p>Razzle emits User autocommands with payload in
+<code>event.data</code>:</p>
+<ul>
+<li><p>RazzleStart Fired when a presentation starts.
+<code>data.entered</code> is the starting slide.</p></li>
+<li><p>RazzleEnd Fired when a presentation ends.</p></li>
+<li><p>RazzleSlideEnter Fired when the cursor enters a different slide
+during a presentation, including the first slide at start.</p></li>
+</ul>
+<p>Timing and ordering:</p>
+<ul>
+<li>On start, slide-change handlers are set up before firing
+RazzleStart, so CursorMoved handlers you register during RazzleStart run
+after slide-change handlers.</li>
+</ul>
+<p>Payload shape (table fields are a stable contract):</p>
+<pre><code>{
+  startLn: number,  -- 1-based line of SLIDE marker
+  endLn:   number,  -- 1-based line of end marker (exclusive interior end)
+  bufNu:   number,  -- buffer handle containing this slide
+  fragment: string|nil,
+  params:   table&lt;string, string|string[]&gt;|nil,
+}</code></pre>
+<h2 id="commands-and-api-razzleapi">Commands and API {#razzle.api}</h2>
+<h3 id="razzlestart-razzlecmdstart">:RazzleStart
+{#razzle.cmd.start}</h3>
+<p>Begin a presentation in the current window. The cursor must be inside
+a slide, otherwise you will see an error. Moves the cursor to the first
+line of the slide interior. Triggers |RazzleStart| and then
+|RazzleSlideEnter| for the starting slide.</p>
+<h3 id="razzleend-razzlecmdend">:RazzleEnd {#razzle.cmd.end}</h3>
+<p>End the current presentation. Triggers |RazzleEnd| and cleans up
+internal state.</p>
+<h3
+id="requirerazzlestart_presentation-razzlestart">require(“razzle”).start_presentation()
+{#razzle.start}</h3>
+<p>Programmatic equivalent of |:RazzleStart|.</p>
+<h3
+id="requirerazzleend_presentation-razzleend">require(“razzle”).end_presentation()
+{#razzle.end}</h3>
+<p>Programmatic equivalent of |:RazzleEnd|.</p>
+<h2 id="modules-razzlemodules">Modules {#razzle.modules}</h2>
+<p>Each module is optional. Require the ones you want.</p>
+<h3 id="motion-razzlemotion">motion {#razzle.motion}</h3>
+<p>Navigation helpers.</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">motion</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.motion&quot;</span><span class="op">)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="va">motion</span><span class="op">.</span>next_slide<span class="op">()</span> <span class="co">-- go to next slide start (interior)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="va">motion</span><span class="op">.</span>prev_slide<span class="op">()</span> <span class="co">-- go to previous slide start (interior)</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="va">motion</span><span class="op">.</span>cur_slide<span class="op">()</span>  <span class="co">-- jump to the current slide interior</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="va">motion</span><span class="op">.</span>align_view<span class="op">()</span> <span class="co">-- keep view aligned to the slide top</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="va">motion</span><span class="op">.</span>find_slide<span class="op">(</span><span class="st">&quot;fragment&quot;</span><span class="op">)</span> <span class="co">-- jump to slide by fragment id</span></span></code></pre></div>
+<p>Notes:</p>
+<ul>
+<li><code>next</code> / <code>prev</code> consider
+<code>SLIDE?next=frag</code> or <code>?prev=frag</code> overrides on the
+current slide.</li>
+<li>Slides are indexed per-buffer. A presentation start preloads all
+normal buffers so fragment-based jumps can cross buffers.</li>
+</ul>
+<h3 id="conceal-razzleconceal">conceal {#razzle.conceal}</h3>
+<p>Conceals lines containing slide markers while a presentation is
+active. Works with both regex syntax and Tree-sitter via a
+<code>matchadd</code>.</p>
+<ul>
+<li>On |RazzleStart|: installs highlight and conceal rules.</li>
+<li>On |RazzleEnd|: clears them.</li>
+</ul>
+<h3 id="lock-razzlelock">lock {#razzle.lock}</h3>
+<p>Restricts cursor movement to within the current slide’s interior
+while a presentation is active. Also keeps the top of the slide at the
+top of the window.</p>
+<ul>
+<li>On |RazzleStart|: sets <code>scrolloff=0</code>, computes bounds for
+the current slide, and installs handlers to maintain bounds and
+view.</li>
+<li>On |RazzleSlideEnter|: recomputes bounds for the entered slide.</li>
+<li>On |RazzleEnd|: removes bounds.</li>
+</ul>
+<h3 id="zen-mode-razzlezen-mode">zen-mode {#razzle.zen-mode}</h3>
+<p>Centers the current slide in a floating window with a solid backdrop.
+The slide remains editable; clicking the backdrop does nothing and focus
+stays in the slide window. Responds to VimResized and ColorScheme
+changes.</p>
+<h4 id="setup-razzlezen-modesetup">Setup {#razzle.zen-mode.setup}</h4>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.zen-mode&quot;</span><span class="op">).</span>setup<span class="op">({</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="va">backdrop</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">blend</span> <span class="op">=</span> <span class="dv">30</span><span class="op">,</span>        <span class="co">-- 0..100: how much to blend toward target color</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">color</span> <span class="op">=</span> <span class="st">&quot;#000000&quot;</span><span class="op">,</span> <span class="co">-- target color to blend toward</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="va">padding</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="va">horizontal</span> <span class="op">=</span> <span class="dv">4</span><span class="op">,</span>    <span class="co">-- cells added left and right</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="va">vertical</span>   <span class="op">=</span> <span class="dv">2</span><span class="op">,</span>    <span class="co">-- cells added top and bottom</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
+<p>Window sizing:</p>
+<ul>
+<li>Width defaults to 80 columns.</li>
+<li>Height adapts to the slide interior, accounting for folds and
+virtual lines.</li>
+</ul>
+<h3 id="term-optional-razzleterm">term (optional) {#razzle.term}</h3>
+<p>Restores focus to the current slide when a terminal job closes.</p>
+<ul>
+<li>On |RazzleStart|: remembers the starting slide and updates on
+|RazzleSlideEnter|.</li>
+<li>On <code>TermClose</code>: jumps back to the last seen slide
+interior.</li>
+</ul>
+<h3 id="html-experimental-razzlehtml">html (experimental)
+{#razzle.html}</h3>
+<p>Exports slides to HTML using the <code>:TOhtml</code> runtime
+(requires <code>tohtml</code>).</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.html&quot;</span><span class="op">).</span>slidesToSimpleHTML<span class="op">()</span>  <span class="co">-- SlideN.html per slide</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.html&quot;</span><span class="op">).</span>slidesToSingleHTML<span class="op">()</span>  <span class="co">-- Slides.html with &lt;section&gt;s</span></span></code></pre></div>
+<h2 id="slide-detection-details-razzleslides">Slide detection details
+{#razzle.slides}</h2>
+<p>A slide begins at a line that contains <code>SLIDE</code> and ends at
+the next line that contains either <code>SLIDE</code> or
+<code>FIN</code>, or at end-of-file. The slide interior excludes the
+marker lines. Folds that cover marker lines are opened automatically
+when computing the slide height to avoid degenerate displays.</p>
+<h2 id="faq-razzlefaq">FAQ {#razzle.faq}</h2>
+<ul>
+<li><p>Q: Can I mix code and markdown? A: Yes. Any text between
+<code>SLIDE</code> and the next marker is slide content.</p></li>
+<li><p>Q: Do I need to use Lua only? A: You can also use |:RazzleStart|
+and |:RazzleEnd| commands.</p></li>
+<li><p>Q: Is there a “slide leave” event? A: Not currently. Only
+|RazzleSlideEnter| is emitted. A leave event may be added
+later.</p></li>
+</ul>
+</body>
+</html>
