@@ -1,0 +1,52 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "doc/razzle.md"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  vimdoc:
+    name: Generate vimdoc
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: panvimdoc
+        # Consider pinning to a specific release once you pick one
+        uses: kdheepak/panvimdoc@main
+        with:
+          vimdoc: razzle        # outputs doc/razzle.txt and tag 'razzle'
+          pandoc: doc/razzle.md # input markdown file
+          toc: true
+      - name: Commit generated docs
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore(docs): generate vim help"
+
+  site:
+    name: Build HTML docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pandoc markdown to HTML
+        uses: docker://pandoc/latex:3.1
+        with:
+          args: >-
+            --from gfm+smart
+            --to html5
+            --standalone
+            --katex
+            --toc
+            --metadata title="Razzle.nvim"
+            doc/razzle.md
+            -o public/index.html
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: public
