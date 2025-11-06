@@ -1,0 +1,252 @@
+*razzle.txt*           For NVIM v0.8.0           Last change: 2025 November 06
+
+==============================================================================
+Table of Contents                                   *razzle-table-of-contents*
+
+1. Razzle.nvim                                            |razzle-razzle.nvim|
+  - TL;DR                                           |razzle-razzle.nvim-tl;dr|
+  - Concepts                                     |razzle-razzle.nvim-concepts|
+  - Events                                         |razzle-razzle.nvim-events|
+  - Commands and API                     |razzle-razzle.nvim-commands-and-api|
+  - Modules                                       |razzle-razzle.nvim-modules|
+  - Slide detection details       |razzle-razzle.nvim-slide-detection-details|
+  - FAQ                                               |razzle-razzle.nvim-faq|
+
+==============================================================================
+1. Razzle.nvim                                            *razzle-razzle.nvim*
+
+Terminal slide presentations in Neovim.
+
+- Project: https://github.com/you/razzle.nvim
+- License: MIT
+- Requires: Neovim 0.8+
+
+
+TL;DR                                               *razzle-razzle.nvim-tl;dr*
+
+>lua
+    -- Start a presentation (cursor must be inside a slide)
+    require("razzle").start_presentation()
+    
+    -- Optional helpers
+    require("razzle.lock")
+    require("razzle.conceal")
+    require("razzle.zen-mode")
+    -- Optional: return to the deck after a terminal closes
+    -- require("razzle.term")
+    
+    local motion = require("razzle.motion")
+    vim.keymap.set("n", "]S", motion.next_slide)
+    vim.keymap.set("n", "[S", motion.prev_slide)
+<
+
+Slides are delimited by lines that contain `SLIDE` and an ending marker.
+
+
+CONCEPTS                                         *razzle-razzle.nvim-concepts*
+
+A slide begins at a line containing `SLIDE` (may be in a comment) and ends at
+the next line that contains either `SLIDE` or `FIN`. The interior of a slide is
+the text strictly between those markers. Slides can be any text: markdown,
+code, plain text. During a presentation, entering a slide fires
+|RazzleSlideEnter|. Razzle ships small modules that help with view/layout and
+navigation. Put razzle setup in a Session file or `.nvim.lua` to style each
+presentation.
+
+
+SLIDE MARKERS WITH PARAMS AND FRAGMENTS ~
+
+`SLIDE` lines can carry an optional query string and an optional fragment:
+
+>
+    SLIDE?key=value&k2=v2#my-fragment
+<
+
+- Params become a table on the slide object, e.g. `slide.params.next`.
+- Fragment becomes `slide.fragment` and is used by |razzle.motion.find|.
+- If the current slide has `next` or `prev` params, they override linear
+    navigation by naming the fragment of the target slide. Example:
+
+>
+    SLIDE#intro
+    ... intro content ...
+    FIN
+    
+    SLIDE?next=section-2#section-1
+    ... section 1 ...
+    SLIDE#section-2
+    ... section 2 ...
+    FIN
+<
+
+
+EVENTS                                             *razzle-razzle.nvim-events*
+
+Razzle emits User autocommands with payload in `event.data`:
+
+- RazzleStart Fired when a presentation starts. `data.entered` is the starting
+    slide.
+- RazzleEnd Fired when a presentation ends.
+- RazzleSlideEnter Fired when the cursor enters a different slide during a
+    presentation, including the first slide at start.
+
+Timing and ordering:
+
+- On start, slide-change handlers are set up before firing RazzleStart, so
+    CursorMoved handlers you register during RazzleStart run after slide-change
+    handlers.
+
+Payload shape (table fields are a stable contract):
+
+>
+    {
+      startLn: number,  -- 1-based line of SLIDE marker
+      endLn:   number,  -- 1-based line of end marker (exclusive interior end)
+      bufNu:   number,  -- buffer handle containing this slide
+      fragment: string|nil,
+      params:   table<string, string|string[]>|nil,
+    }
+<
+
+
+COMMANDS AND API                         *razzle-razzle.nvim-commands-and-api*
+
+
+:RAZZLESTART ~
+
+Begin a presentation in the current window. The cursor must be inside a slide,
+otherwise you will see an error. Moves the cursor to the first line of the
+slide interior. Triggers |RazzleStart| and then |RazzleSlideEnter| for the
+starting slide.
+
+
+:RAZZLEEND ~
+
+End the current presentation. Triggers |RazzleEnd| and cleans up internal
+state.
+
+
+REQUIRE(“RAZZLE”).START_PRESENTATION() ~
+
+Programmatic equivalent of |:RazzleStart|.
+
+
+REQUIRE(“RAZZLE”).END_PRESENTATION() ~
+
+Programmatic equivalent of |:RazzleEnd|.
+
+
+MODULES                                           *razzle-razzle.nvim-modules*
+
+Each module is optional. Require the ones you want.
+
+
+MOTION ~
+
+Navigation helpers.
+
+>lua
+    local motion = require("razzle.motion")
+    motion.next_slide() -- go to next slide start (interior)
+    motion.prev_slide() -- go to previous slide start (interior)
+    motion.cur_slide()  -- jump to the current slide interior
+    motion.align_view() -- keep view aligned to the slide top
+    motion.find_slide("fragment") -- jump to slide by fragment id
+<
+
+Notes:
+
+- `next` / `prev` consider `SLIDE?next=frag` or `?prev=frag` overrides on the
+    current slide.
+- Slides are indexed per-buffer. A presentation start preloads all normal
+    buffers so fragment-based jumps can cross buffers.
+
+
+CONCEAL ~
+
+Conceals lines containing slide markers while a presentation is active. Works
+with both regex syntax and Tree-sitter via a `matchadd`.
+
+- On |RazzleStart|: installs highlight and conceal rules.
+- On |RazzleEnd|: clears them.
+
+
+LOCK ~
+
+Restricts cursor movement to within the current slide’s interior while a
+presentation is active. Also keeps the top of the slide at the top of the
+window.
+
+- On |RazzleStart|: sets `scrolloff=0`, computes bounds for the current slide,
+    and installs handlers to maintain bounds and view.
+- On |RazzleSlideEnter|: recomputes bounds for the entered slide.
+- On |RazzleEnd|: removes bounds.
+
+
+ZEN-MODE ~
+
+Centers the current slide in a floating window with a solid backdrop. The slide
+remains editable; clicking the backdrop does nothing and focus stays in the
+slide window. Responds to VimResized and ColorScheme changes.
+
+
+SETUP
+
+>lua
+    require("razzle.zen-mode").setup({
+      backdrop = {
+        blend = 30,        -- 0..100: how much to blend toward target color
+        color = "#000000", -- target color to blend toward
+      },
+      padding = {
+        horizontal = 4,    -- cells added left and right
+        vertical   = 2,    -- cells added top and bottom
+      },
+    })
+<
+
+Window sizing:
+
+- Width defaults to 80 columns.
+- Height adapts to the slide interior, accounting for folds and virtual lines.
+
+
+TERM (OPTIONAL) ~
+
+Restores focus to the current slide when a terminal job closes.
+
+- On |RazzleStart|: remembers the starting slide and updates on
+    |RazzleSlideEnter|.
+- On `TermClose`: jumps back to the last seen slide interior.
+
+
+HTML (EXPERIMENTAL) ~
+
+Exports slides to HTML using the `:TOhtml` runtime (requires `tohtml`).
+
+>lua
+    require("razzle.html").slidesToSimpleHTML()  -- SlideN.html per slide
+    require("razzle.html").slidesToSingleHTML()  -- Slides.html with <section>s
+<
+
+
+SLIDE DETECTION DETAILS           *razzle-razzle.nvim-slide-detection-details*
+
+A slide begins at a line that contains `SLIDE` and ends at the next line that
+contains either `SLIDE` or `FIN`, or at end-of-file. The slide interior
+excludes the marker lines. Folds that cover marker lines are opened
+automatically when computing the slide height to avoid degenerate displays.
+
+
+FAQ                                                   *razzle-razzle.nvim-faq*
+
+- Q: Can I mix code and markdown? A: Yes. Any text between `SLIDE` and the next
+    marker is slide content.
+- Q: Do I need to use Lua only? A: You can also use |:RazzleStart| and
+    |:RazzleEnd| commands.
+- Q: Is there a "slide leave" event? A: Not currently. Only |RazzleSlideEnter| is
+    emitted. A leave event may be added later.
+
+Generated by panvimdoc <https://github.com/kdheepak/panvimdoc>
+
+vim:tw=78:ts=8:noet:ft=help:norl:
