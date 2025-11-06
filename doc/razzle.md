@@ -2,10 +2,6 @@
 
 Terminal slide presentations in Neovim.
 
-- Project: https://github.com/you/razzle.nvim
-- License: MIT
-- Requires: Neovim 0.8+
-
 ## TL;DR {#razzle.tldr}
 
 ```lua
