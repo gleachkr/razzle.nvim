@@ -452,6 +452,19 @@ vim.api.nvim_create_autocmd({"VimResized"}, {
     group = razzle_zen_group,
 })
 
+-- End the presentation instead of just closing the slide float when the
+-- user executes :q in the zen window. Using QuitPre ensures we react before
+-- Neovim actually closes the window, so backdrop/pad are cleaned up.
+vim.api.nvim_create_autocmd("QuitPre", {
+    callback = function()
+        if is_valid_win(M.win)
+           and vim.api.nvim_get_current_win() == M.win then
+                require("razzle").end_presentation()
+        end
+    end,
+    group = razzle_zen_group,
+})
+
 -- If colorscheme changes globally, update backdrop highlight when open
 vim.api.nvim_create_autocmd("ColorScheme", {
     callback = function()
