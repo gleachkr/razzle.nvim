@@ -14,6 +14,13 @@ M.config = {
         -- Target color to blend towards. Hex string like "#000000".
         color = "#000000",
     },
+    -- Optional visual padding around the slide content. When non-zero, a
+    -- secondary float is drawn behind the slide with the Normal background,
+    -- sized larger by the given padding to create a "frame" effect.
+    padding = {
+        horizontal = 0,
+        vertical = 0,
+    },
 }
 
 -- State for our floating windows
@@ -21,6 +28,8 @@ M.win = nil           -- slide window id
 M.backdrop = nil      -- backdrop window id
 M.backdrop_buf = nil  -- backdrop buffer id
 M.backdrop_au = nil   -- autocmd group id for backdrop focus guard
+M.pad = nil           -- padding/frame window id
+M.pad_buf = nil       -- padding/frame buffer id
 
 -- Basic helpers compatible with previous usage
 function M.round(x) return math.floor(x + 0.5) end
@@ -91,7 +100,9 @@ local function to_rgb_from_hex(hex)
 end
 
 local function to_hex(r, g, b)
-    return string.format("#%02x%02x%02x", clamp(r,0,255), clamp(g,0,255), clamp(b,0,255))
+    return string.format(
+        "#%02x%02x%02x", clamp(r,0,255), clamp(g,0,255), clamp(b,0,255)
+    )
 end
 
 local function blend_rgb(r1, g1, b1, r2, g2, b2, pct)
@@ -104,13 +115,19 @@ end
 
 -- Apply (and create) the RazzleZenBackdrop highlight according to config
 function M._apply_backdrop_highlight()
-    local ok, normal = pcall(vim.api.nvim_get_hl, 0, { name = "Normal", link = false })
+    local ok, normal = pcall(
+        vim.api.nvim_get_hl, 0, { name = "Normal", link = false }
+    )
     local base_bg = (ok and normal and normal.bg) or nil
     local bg_hex
     if type(base_bg) == "number" then
         local r, g, b = to_rgb_from_number(base_bg)
-        local tr, tg, tb = to_rgb_from_hex(M.config.backdrop.color or "#000000")
-        local br, bg, bb = blend_rgb(r, g, b, tr, tg, tb, M.config.backdrop.blend or 0)
+        local tr, tg, tb = to_rgb_from_hex(
+            M.config.backdrop.color or "#000000"
+        )
+        local br, bg, bb = blend_rgb(
+            r, g, b, tr, tg, tb, M.config.backdrop.blend or 0
+        )
         bg_hex = to_hex(br, bg, bb)
     else
         -- Fallback: just use the target color with small alpha towards it
@@ -175,8 +192,12 @@ local function ensure_backdrop()
     -- Create (or reuse) a scratch buffer for the backdrop
     if not (M.backdrop_buf and vim.api.nvim_buf_is_valid(M.backdrop_buf)) then
         M.backdrop_buf = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_set_option_value("buftype", "nofile", { buf = M.backdrop_buf })
-        vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = M.backdrop_buf })
+        vim.api.nvim_set_option_value(
+            "buftype", "nofile", { buf = M.backdrop_buf }
+        )
+        vim.api.nvim_set_option_value(
+            "bufhidden", "wipe", { buf = M.backdrop_buf }
+        )
         vim.api.nvim_buf_set_lines(M.backdrop_buf, 0, -1, false, {""})
     end
 
@@ -201,20 +222,97 @@ local function ensure_backdrop()
     vim.api.nvim_set_option_value("winblend", 0, { win = M.backdrop })
     -- No UI clutter on backdrop
     vim.api.nvim_set_option_value("number", false, { win = M.backdrop })
-    vim.api.nvim_set_option_value("relativenumber", false, { win = M.backdrop })
+    vim.api.nvim_set_option_value(
+        "relativenumber", false, { win = M.backdrop }
+    )
     vim.api.nvim_set_option_value("signcolumn", "no", { win = M.backdrop })
     vim.api.nvim_set_option_value("foldcolumn", "0", { win = M.backdrop })
 
     install_backdrop_autocmds()
 end
 
+-- Ensure/create the padding "frame" window behind the slide, or close it
+-- when padding is zero. The pad uses Normal background to simulate slide
+-- padding against the dimmed backdrop.
+local function ensure_pad(width, height, col, row)
+    local pad = M.config.padding or {}
+    local ph = math.max(0, tonumber(pad.horizontal or 0) or 0)
+    local pv = math.max(0, tonumber(pad.vertical or 0) or 0)
+
+    if ph == 0 and pv == 0 then
+        if is_valid_win(M.pad) then
+            pcall(vim.api.nvim_win_close, M.pad, true)
+        end
+        M.pad = nil
+        M.pad_buf = nil
+        return
+    end
+
+    local pwidth = width + ph * 2
+    local pheight = height + pv * 2
+    local pcol = col - ph
+    local prow = row - pv
+
+    if not (M.pad_buf and vim.api.nvim_buf_is_valid(M.pad_buf)) then
+        M.pad_buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_set_option_value(
+            "buftype", "nofile", { buf = M.pad_buf }
+        )
+        vim.api.nvim_set_option_value(
+            "bufhidden", "wipe", { buf = M.pad_buf }
+        )
+        vim.api.nvim_buf_set_lines(M.pad_buf, 0, -1, false, {""})
+    end
+
+    if is_valid_win(M.pad) then
+        vim.api.nvim_win_set_config(M.pad, {
+            relative = "editor",
+            width = pwidth,
+            height = pheight,
+            col = pcol,
+            row = prow,
+            zindex = 40,
+        })
+    else
+        M.pad = vim.api.nvim_open_win(M.pad_buf, false, {
+            relative = "editor",
+            width = pwidth,
+            height = pheight,
+            col = pcol,
+            row = prow,
+            style = "minimal",
+            zindex = 40,
+            focusable = false,
+        })
+        -- Match the slide window background (Normal)
+        vim.api.nvim_set_option_value(
+            "winhighlight", "Normal:Normal,NormalNC:Normal", { win = M.pad }
+        )
+        -- Tidy the pad window UI
+        local wo = function(opt, val)
+            vim.api.nvim_set_option_value(opt, val, { win = M.pad })
+        end
+        wo("number", false)
+        wo("relativenumber", false)
+        wo("signcolumn", "no")
+        wo("foldcolumn", "0")
+        wo("cursorline", false)
+        wo("statusline", "")
+        wo("scrolloff", 0)
+    end
+end
+
 local function open_slide_window(width, height)
     ensure_backdrop()
 
+    local col = M.round((vim.o.columns - width) / 2)
+    local row = M.round((M.height() - height) / 2)
+
+    -- Always ensure the padding frame according to current layout
+    ensure_pad(width, height, col, row)
+
     -- If the slide window already exists, just reconfigure it
     if is_valid_win(M.win) then
-        local col = M.round((vim.o.columns - width) / 2)
-        local row = M.round((M.height() - height) / 2)
         vim.api.nvim_win_set_config(M.win, {
             relative = "editor",
             width = width,
@@ -227,8 +325,6 @@ local function open_slide_window(width, height)
     end
 
     -- Open a floating window on the current buffer (so edits apply directly)
-    local col = M.round((vim.o.columns - width) / 2)
-    local row = M.round((M.height() - height) / 2)
     M.win = vim.api.nvim_open_win(0, true, {
         relative = "editor",
         width = width,
@@ -241,7 +337,9 @@ local function open_slide_window(width, height)
     })
 
     -- Tidy the slide window UI
-    local wo = function(opt, val) vim.api.nvim_set_option_value(opt, val, { win = M.win }) end
+    local wo = function(opt, val)
+        vim.api.nvim_set_option_value(opt, val, { win = M.win })
+    end
     wo("number", false)
     wo("relativenumber", false)
     wo("signcolumn", "no")
@@ -267,6 +365,8 @@ end
 function M.close()
     if is_valid_win(M.win) then vim.api.nvim_win_close(M.win, true) end
     M.win = nil
+    if is_valid_win(M.pad) then vim.api.nvim_win_close(M.pad, true) end
+    M.pad = nil
     if is_valid_win(M.backdrop) then vim.api.nvim_win_close(M.backdrop, true) end
     M.backdrop = nil
     -- Remove backdrop autocmds, if any
@@ -274,8 +374,9 @@ function M.close()
         pcall(vim.api.nvim_del_augroup_by_id, M.backdrop_au)
         M.backdrop_au = nil
     end
-    -- The scratch buffer will be wiped by bufhidden=wipe when the window closes
+    -- The scratch buffers will be wiped by bufhidden=wipe when windows close
     M.backdrop_buf = nil
+    M.pad_buf = nil
 end
 
 function M.set_layout(w, h)
@@ -297,6 +398,10 @@ function M.set_layout(w, h)
             zindex = 50,
         })
     end
+
+    -- Ensure/update the padding frame according to current layout
+    ensure_pad(width, height, col, row)
+
     -- Also ensure the backdrop matches the editor size (e.g., after resize)
     if not is_valid_win(M.backdrop) then ensure_backdrop() end
     if is_valid_win(M.backdrop) then
@@ -332,12 +437,15 @@ vim.api.nvim_create_autocmd("User", {
     pattern = "RazzleSlideEnter",
 })
 
-local razzle_zen_group = vim.api.nvim_create_augroup("RazzleZen", { clear = true })
+local razzle_zen_group = vim.api.nvim_create_augroup(
+    "RazzleZen", { clear = true }
+)
 
 vim.api.nvim_create_autocmd({"VimResized"}, {
     callback = function()
         if M.is_open() then
-            local height = slide.slide_height() or vim.api.nvim_win_get_height(M.win)
+            local height = slide.slide_height()
+                or vim.api.nvim_win_get_height(M.win)
             M.set_layout(nil, height)
         end
     end,

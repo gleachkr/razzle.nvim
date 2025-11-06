@@ -65,6 +65,14 @@ require("razzle.zen-mode").setup({
     blend = 30,        -- 0..100: how much to blend towards target color
     color = "#000000", -- target color to blend towards (default black)
   },
+  -- Optional visual padding around the slide. This draws a second float
+  -- behind the slide, centered the same way, with the Normal background,
+  -- and sized larger by the given padding. It creates a frame so your
+  -- content looks inset against the dark backdrop.
+  padding = {
+    horizontal = 4,    -- cells to add on left and right
+    vertical   = 2,    -- cells to add on top and bottom
+  },
 })
 ```
 
