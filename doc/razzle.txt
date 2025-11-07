@@ -1,4 +1,4 @@
-*razzle.txt*           For NVIM v0.8.0           Last change: 2025 November 06
+*razzle.txt*           For NVIM v0.8.0           Last change: 2025 November 07
 
 ==============================================================================
 Table of Contents                                   *razzle-table-of-contents*
@@ -28,6 +28,12 @@ TL;DR                                               *razzle-razzle.nvim-tl;dr*
     require("razzle.lock")
     require("razzle.conceal")
     require("razzle.zen-mode")
+    -- Optional presentation-wide options and per-slide overrides
+    require("razzle.options").setup({
+      o  = { number = false },              -- example: turn off line numbers
+      wo = { signcolumn = "no" },           -- window-local example
+      -- colorscheme = "habamax",           -- optionally pin a colorscheme
+    })
     -- Optional: return to the deck after a terminal closes
     -- require("razzle.term")
     
@@ -61,7 +67,15 @@ SLIDE MARKERS WITH PARAMS AND FRAGMENTS ~
 - Params become a table on the slide object, e.g. `slide.params.next`.
 - Fragment becomes `slide.fragment` and is used by |razzle.motion.find|.
 - If the current slide has `next` or `prev` params, they override linear
-    navigation by naming the fragment of the target slide. Example:
+    navigation by naming the fragment of the target slide.
+- When |razzle.options| is enabled, certain params are recognized as
+    temporary option overrides for that slide and are restored when leaving:
+    - `colorscheme=name`
+    - `o.option=value` for global options
+    - `wo.option=value` for window-local options
+    - `bo.option=value` for buffer-local options
+
+Example:
 
 >
     SLIDE#intro
@@ -185,8 +199,10 @@ Centers the current slide in a floating window with a solid backdrop. The slide
 remains editable; clicking the backdrop does nothing and focus stays in the
 slide window. Responds to VimResized and ColorScheme changes.
 
-
-SETUP
+Note: zen-mode focuses on layout. It does not toggle typical UI options like
+`number`, `relativenumber`, `signcolumn`, or `scrolloff`. Use |razzle.options|
+to set presentation defaults and per-slide overrides for those. #### Setup
+{#razzle.zen-mode.setup}
 
 >lua
     require("razzle.zen-mode").setup({
@@ -214,6 +230,35 @@ Restores focus to the current slide when a terminal job closes.
 - On |RazzleStart|: remembers the starting slide and updates on
     |RazzleSlideEnter|.
 - On `TermClose`: jumps back to the last seen slide interior.
+
+
+OPTIONS ~
+
+Manage presentation-wide defaults and per-slide overrides for options.
+
+- On |RazzleStart|: saves original values, applies your presentation
+    defaults, and applies overrides for the starting slide (if any).
+- On |RazzleSlideEnter|: resets any previous slide overrides to the
+    presentation defaults (or to the original value if you did not specify a
+    default), then applies the new slide’s overrides.
+- On |RazzleEnd|: restores the original values.
+
+Setup example:
+
+>lua
+    require("razzle.options").setup({
+      o  = { number = false, cursorline = false },
+      wo = { signcolumn = "no" },
+      bo = {},
+      -- colorscheme = "habamax",
+    })
+<
+
+Per-slide example:
+
+>
+    SLIDE?colorscheme=elflord&wo.signcolumn=yes&o.cursorline=false#intro
+<
 
 
 HTML (EXPERIMENTAL) ~
