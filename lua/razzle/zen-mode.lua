@@ -336,19 +336,10 @@ local function open_slide_window(width, height)
         border = nil,
     })
 
-    -- Tidy the slide window UI
-    local wo = function(opt, val)
-        vim.api.nvim_set_option_value(opt, val, { win = M.win })
-    end
-    wo("number", false)
-    wo("relativenumber", false)
-    wo("signcolumn", "no")
-    wo("foldcolumn", "0")
-    wo("cursorline", false)
-    wo("statusline", "")
-    wo("scrolloff", 0)
-    -- Inherit highlights; users can override NormalFloat if they want a box
-    wo("winhighlight", "Normal:Normal,NormalNC:Normal")
+    -- Keep float highlights consistent with Normal (not NormalFloat)
+    vim.api.nvim_set_option_value(
+        "winhighlight", "Normal:Normal,NormalNC:Normal", { win = M.win }
+    )
 end
 
 function M.open(opts)
