@@ -18,6 +18,12 @@ require("razzle.options").setup({
   wo = { signcolumn = "no" },           -- window-local example
   -- colorscheme = "habamax",           -- optionally pin a colorscheme
 })
+-- Optional temporary maps (saved/restored automatically)
+local motion = require("razzle.motion")
+require("razzle.maps").setup({
+  n = { ["]S"] = motion.next_slide, ["[S"] = motion.prev_slide },
+  i = { ["<Right>"] = motion.next_slide, ["<Left>"] = motion.prev_slide },
+})
 -- Optional: return to the deck after a terminal closes
 -- require("razzle.term")
 
@@ -148,6 +154,26 @@ Notes:
   current slide.
 - Slides are indexed per-buffer. A presentation start preloads all normal
   buffers so fragment-based jumps can cross buffers.
+
+### maps {#razzle.maps}
+
+Temporary keymaps that are active only during a presentation. Any existing
+mappings for those keys are saved and restored when the presentation ends.
+
+- On |RazzleStart|: saves current mappings for your keys and installs the
+  presentation mappings.
+- On |RazzleEnd|: removes the presentation mappings and restores the saved
+  mappings.
+
+Setup example (shorthand by mode):
+
+```lua
+local motion = require("razzle.motion")
+require("razzle.maps").setup({
+  n = { ["]S"] = motion.next_slide, ["[S"] = motion.prev_slide },
+  i = { ["<Right>"] = motion.next_slide, ["<Left>"] = motion.prev_slide },
+})
+```
 
 ### conceal {#razzle.conceal}
 

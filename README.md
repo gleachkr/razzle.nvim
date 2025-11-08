@@ -16,9 +16,6 @@ event, and the second fires a `RazzleEnd` event. During the presentation,
 entering a new slide fires a `RazzleSlideEnter` event. That's the basic idea,
 it's very simple!
 
-Look inside for function-level documentation. Eventually I'll write some some
-proper `:help` docs, I hope.
-
 ## Usage
 
 You can handle `RazzleStart`, `RazzleEnd`, and `RazzleSlideEnter` by updating
@@ -39,6 +36,9 @@ Available modules:
 | lock     | Restricts cursor movement to within slides |
 | zen-mode | Built-in zen view: centers current slide in a floating window with a solid backdrop |
 | motion   | Provides slide navigation functions |
+| maps     | Temporary keymaps during a presentation  |
+| term     | Jump to the terminal during a presentation  |
+| options  | Temporary (including per-slide) options during a presentation  |
 
 ## Example
 
@@ -49,10 +49,15 @@ require("razzle")
 require("razzle.lock")
 require("razzle.conceal")
 require("razzle.zen-mode")
-
-motion = require("razzle.motion")
-vim.keymap.set("n", "]S", motion.next_slide)
-vim.keymap.set("n", "[S", motion.prev_slide)
+require("razzle.term")
+require("razzle.options").setup({
+    o = { background = "light" }
+})
+local motion = require("razzle.motion")
+require("razzle.maps").setup({
+  n = { ["]S"] = motion.next_slide, ["[S"] = motion.prev_slide },
+  i = { ["<Right>"] = motion.next_slide, ["<Left>"] = motion.prev_slide },
+})
 ```
 
 ### Zen mode configuration
