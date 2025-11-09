@@ -469,6 +469,14 @@ view.</li>
 The slide remains editable; clicking the backdrop does nothing and focus
 stays in the slide window. Responds to VimResized and ColorScheme
 changes.</p>
+<p>If the current slide marker has a <code>split=FRAG</code> parameter,
+zen-mode will draw a second, non-focusable floating window to the right
+that shows the slide with fragment id <code>FRAG</code>. The total
+minimum width defaults to 80 columns. Each split pane has a minimum of
+half that. If a slide’s longest interior line is wider than its minimum,
+that pane expands to fit its content. The padding frame expands to
+encompass both windows. Each pane uses the intrinsic height of its
+content; the overall layout height is the max of the two.</p>
 <p>Note: zen-mode focuses on layout. It does not toggle typical UI
 options like <code>number</code>, <code>relativenumber</code>,
 <code>signcolumn</code>, or <code>scrolloff</code>. Use |razzle.options|
@@ -484,13 +492,8 @@ class="sourceCode lua"><code class="sourceCode lua"><span id="cb7-1"><a href="#c
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="va">horizontal</span> <span class="op">=</span> <span class="dv">4</span><span class="op">,</span>    <span class="co">-- cells added left and right</span></span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="va">vertical</span>   <span class="op">=</span> <span class="dv">2</span><span class="op">,</span>    <span class="co">-- cells added top and bottom</span></span>
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
-<p>Window sizing:</p>
-<ul>
-<li>Width defaults to 80 columns.</li>
-<li>Height adapts to the slide interior, accounting for folds and
-virtual lines.</li>
-</ul>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="va">min_width</span> <span class="op">=</span> <span class="dv">80</span><span class="op">,</span>      <span class="co">-- minimum total width; split panes get half each</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
 <h3 id="term-optional-razzleterm">term (optional) {#razzle.term}</h3>
 <p>Restores focus to the current slide when a terminal job closes.</p>
 <ul>
