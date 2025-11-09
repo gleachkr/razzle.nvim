@@ -21,7 +21,15 @@ M.config = {
         horizontal = 0,
         vertical = 0,
     },
+    -- Minimum total width for the layout. For a single slide, this is the
+    -- minimum slide width. For a split, each pane has a minimum of half of
+    -- this value. If the longest line in a slide exceeds its minimum, that
+    -- pane expands to fit the content.
+    min_width = 80,
 }
+
+-- Constants to keep zindex and sizing in one place
+local Z = { backdrop = 1, pad = 40, content = 50 }
 
 -- State for our floating windows
 M.win = nil           -- slide window id
@@ -30,6 +38,10 @@ M.backdrop_buf = nil  -- backdrop buffer id
 M.backdrop_au = nil   -- autocmd group id for backdrop focus guard
 M.pad = nil           -- padding/frame window id
 M.pad_buf = nil       -- padding/frame buffer id
+-- Split state
+M.split = nil         -- split window id (non-focusable)
+M.split_frag = nil    -- current fragment id of split content
+M.safe_au = nil       -- autocmd id for scoped SafeState handler
 
 -- Basic helpers compatible with previous usage
 function M.round(x) return math.floor(x + 0.5) end
@@ -45,10 +57,6 @@ end
 
 local function is_valid_win(win)
     return win and vim.api.nvim_win_is_valid(win)
-end
-
-function M.is_open()
-    return is_valid_win(M.win)
 end
 
 -- Shallow merge for config tables
@@ -136,6 +144,61 @@ function M._apply_backdrop_highlight()
     vim.api.nvim_set_hl(0, "RazzleZenBackdrop", { bg = bg_hex, fg = bg_hex })
 end
 
+-- Small, focused helpers -------------------------------------------------
+
+local function ensure_scratch_buf(buf)
+    if buf and vim.api.nvim_buf_is_valid(buf) then return buf end
+    local b = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_set_option_value("buftype", "nofile", { buf = b })
+    vim.api.nvim_set_option_value("bufhidden", "wipe", { buf = b })
+    vim.api.nvim_buf_set_lines(b, 0, -1, false, { "" })
+    return b
+end
+
+--- This configures a minimal UI for padding and backdrop windows. It should
+--- not be applied to slide windows, including splits
+local function set_minimal_ui(win)
+    local wo = function(opt, val)
+        vim.api.nvim_set_option_value(opt, val, { win = win })
+    end
+    wo("number", false)
+    wo("relativenumber", false)
+    wo("signcolumn", "no")
+    wo("foldcolumn", "0")
+    wo("cursorline", false)
+    wo("scrolloff", 0)
+    wo("statusline", "")
+end
+
+local function center(total_w, total_h)
+    local col = M.round((vim.o.columns - total_w) / 2)
+    local row = M.round((M.height() - total_h) / 2)
+    return col, row
+end
+
+local function refresh_backdrop_highlight()
+    if not is_valid_win(M.backdrop) then return end
+    M._apply_backdrop_highlight()
+    vim.api.nvim_set_option_value(
+        "winhighlight",
+        "Normal:RazzleZenBackdrop,NormalNC:RazzleZenBackdrop",
+        { win = M.backdrop }
+    )
+    -- Schedule one more pass after other autocmds (e.g., options)
+    vim.schedule(function()
+        if is_valid_win(M.backdrop) then
+            M._apply_backdrop_highlight()
+            pcall(vim.api.nvim_set_option_value,
+                "winhighlight",
+                "Normal:RazzleZenBackdrop,NormalNC:RazzleZenBackdrop",
+                { win = M.backdrop }
+            )
+        end
+    end)
+end
+
+-- Backdrop ---------------------------------------------------------------
+
 local function install_backdrop_autocmds()
     if not (M.backdrop_buf and vim.api.nvim_buf_is_valid(M.backdrop_buf)) then
         return
@@ -182,24 +245,13 @@ local function install_backdrop_autocmds()
         end,
         desc = "Razzle: keep focus off backdrop on scroll"
     })
-
-
 end
 
 local function ensure_backdrop()
     if is_valid_win(M.backdrop) then return end
 
     -- Create (or reuse) a scratch buffer for the backdrop
-    if not (M.backdrop_buf and vim.api.nvim_buf_is_valid(M.backdrop_buf)) then
-        M.backdrop_buf = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_set_option_value(
-            "buftype", "nofile", { buf = M.backdrop_buf }
-        )
-        vim.api.nvim_set_option_value(
-            "bufhidden", "wipe", { buf = M.backdrop_buf }
-        )
-        vim.api.nvim_buf_set_lines(M.backdrop_buf, 0, -1, false, {""})
-    end
+    M.backdrop_buf = ensure_scratch_buf(M.backdrop_buf)
 
     -- Backdrop highlight derived from Normal and user blend settings
     M._apply_backdrop_highlight()
@@ -212,24 +264,16 @@ local function ensure_backdrop()
         col = 0,
         focusable = true,
         style = "minimal",
-        zindex = 1,
+        zindex = Z.backdrop,
     })
-    vim.api.nvim_set_option_value(
-        "winhighlight",
-        "Normal:RazzleZenBackdrop,NormalNC:RazzleZenBackdrop",
-        { win = M.backdrop }
-    )
+    refresh_backdrop_highlight()
     vim.api.nvim_set_option_value("winblend", 0, { win = M.backdrop })
-    -- No UI clutter on backdrop
-    vim.api.nvim_set_option_value("number", false, { win = M.backdrop })
-    vim.api.nvim_set_option_value(
-        "relativenumber", false, { win = M.backdrop }
-    )
-    vim.api.nvim_set_option_value("signcolumn", "no", { win = M.backdrop })
-    vim.api.nvim_set_option_value("foldcolumn", "0", { win = M.backdrop })
+    set_minimal_ui(M.backdrop)
 
     install_backdrop_autocmds()
 end
+
+-- Pad/frame --------------------------------------------------------------
 
 -- Ensure/create the padding "frame" window behind the slide, or close it
 -- when padding is zero. The pad uses Normal background to simulate slide
@@ -253,16 +297,7 @@ local function ensure_pad(width, height, col, row)
     local pcol = col - ph
     local prow = row - pv
 
-    if not (M.pad_buf and vim.api.nvim_buf_is_valid(M.pad_buf)) then
-        M.pad_buf = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_set_option_value(
-            "buftype", "nofile", { buf = M.pad_buf }
-        )
-        vim.api.nvim_set_option_value(
-            "bufhidden", "wipe", { buf = M.pad_buf }
-        )
-        vim.api.nvim_buf_set_lines(M.pad_buf, 0, -1, false, {""})
-    end
+    M.pad_buf = ensure_scratch_buf(M.pad_buf)
 
     if is_valid_win(M.pad) then
         vim.api.nvim_win_set_config(M.pad, {
@@ -271,7 +306,7 @@ local function ensure_pad(width, height, col, row)
             height = pheight,
             col = pcol,
             row = prow,
-            zindex = 40,
+            zindex = Z.pad,
         })
     else
         M.pad = vim.api.nvim_open_win(M.pad_buf, false, {
@@ -281,81 +316,204 @@ local function ensure_pad(width, height, col, row)
             col = pcol,
             row = prow,
             style = "minimal",
-            zindex = 40,
+            zindex = Z.pad,
             focusable = false,
         })
         -- Match the slide window background (Normal)
         vim.api.nvim_set_option_value(
             "winhighlight", "Normal:Normal,NormalNC:Normal", { win = M.pad }
         )
-        -- Tidy the pad window UI
-        local wo = function(opt, val)
-            vim.api.nvim_set_option_value(opt, val, { win = M.pad })
-        end
-        wo("number", false)
-        wo("relativenumber", false)
-        wo("signcolumn", "no")
-        wo("foldcolumn", "0")
-        wo("cursorline", false)
-        wo("statusline", "")
-        wo("scrolloff", 0)
+        set_minimal_ui(M.pad)
     end
 end
 
-local function open_slide_window(width, height)
-    ensure_backdrop()
+-- Sizing helpers ----------------------------------------------------------
 
-    local col = M.round((vim.o.columns - width) / 2)
-    local row = M.round((M.height() - height) / 2)
+-- Compute height of a given slide using the window-local fold/virt context
+local function height_for_slide_in_win(win, s)
+    if not (win and s) then return nil end
+    local h
+    vim.api.nvim_win_call(win, function()
+        -- Move cursor inside the slide for cur_slide() detection
+        pcall(vim.fn.setpos, '.', { 0, s.startLn + 1, 0, 0 })
+        h = slide.slide_height()
+    end)
+    return h
+end
 
-    -- Always ensure the padding frame according to current layout
-    ensure_pad(width, height, col, row)
+-- Split management --------------------------------------------------------
 
-    -- If the slide window already exists, just reconfigure it
-    if is_valid_win(M.win) then
-        vim.api.nvim_win_set_config(M.win, {
-            relative = "editor",
-            width = width,
-            height = height,
-            col = col,
-            row = row,
-            zindex = 50,
-        })
+-- Ensure or update the split window for a given target slide
+local function ensure_split_for(target)
+    if not target then
+        if is_valid_win(M.split) then pcall(vim.api.nvim_win_close, M.split, true) end
+        M.split = nil
+        M.split_frag = nil
         return
     end
 
-    -- Open a floating window on the current buffer (so edits apply directly)
-    M.win = vim.api.nvim_open_win(0, true, {
+    if is_valid_win(M.split) then
+        vim.api.nvim_win_set_buf(M.split, target.bufNu)
+    else
+        -- Create a non-focusable float for the split content. We'll size it
+        -- correctly in the layout pass.
+        M.split = vim.api.nvim_open_win(target.bufNu, false, {
+            relative = "editor",
+            width = 1,
+            height = 1, -- temp; set below
+            col = 0,
+            row = 0,
+            style = "minimal",
+            zindex = Z.content,
+            focusable = false,
+        })
+        -- Match slide window highlight
+        vim.api.nvim_set_option_value(
+            "winhighlight", "Normal:Normal,NormalNC:Normal", { win = M.split }
+        )
+    end
+
+    -- Ensure view starts at the interior
+    vim.api.nvim_win_call(M.split, function()
+        pcall(vim.fn.winrestview, { topline = target.startLn + 1 })
+    end)
+
+    M.split_frag = target.fragment -- may be nil if not set on target
+end
+
+-- Layout -----------------------------------------------------------------
+
+local function split_param_from(s)
+    if not (s and s.params and s.params["split"]) then return nil end
+    local val = s.params["split"]
+    if type(val) == "table" then val = val[1] end
+    return val
+end
+
+---Compute a sane minimum total width from config
+---@return number
+local function min_total_width()
+    local mt = tonumber(M.config.min_width or 80) or 80
+    if mt < 1 then mt = 1 end
+    return mt
+end
+
+---Ensure the primary content window exists and is placed/sized
+---@param w number
+---@param h number
+---@param col number
+---@param row number
+local function place_primary_window(w, h, col, row)
+    if is_valid_win(M.win) then
+        vim.api.nvim_win_set_config(M.win, {
+            relative = "editor",
+            width = w,
+            height = h,
+            col = col,
+            row = row,
+            zindex = Z.content,
+        })
+    else
+        M.win = vim.api.nvim_open_win(0, true, {
+            relative = "editor",
+            width = w,
+            height = h,
+            col = col,
+            row = row,
+            style = "minimal",
+            zindex = Z.content,
+            border = nil,
+        })
+        vim.api.nvim_set_option_value(
+            "winhighlight", "Normal:Normal,NormalNC:Normal", { win = M.win }
+        )
+    end
+end
+
+---Compute pane width with a per-pane minimum
+---@param win number|nil
+---@param s table
+---@param min_pane number
+---@return number
+local function pane_width(win, s, min_pane)
+    local intrinsic = slide.slide_content_width(win, s)
+    return math.max(min_pane, intrinsic)
+end
+
+---Layout for single (no split) view
+local function layout_single(cur, cur_h)
+    ensure_split_for(nil)
+    local min_total = min_total_width()
+    local content_w = slide.slide_content_width(is_valid_win(M.win) and M.win or 0, cur)
+    local w = math.max(min_total, content_w)
+    local col, row = center(w, cur_h)
+    ensure_pad(w, cur_h, col, row)
+    place_primary_window(w, cur_h, col, row)
+    refresh_backdrop_highlight()
+end
+
+---Layout for split view
+local function layout_split(cur, cur_h, target)
+    ensure_split_for(target)
+
+    local split_h = height_for_slide_in_win(M.split, target) or 1
+    -- Align view to interior in split again (in case folds opened)
+    vim.api.nvim_win_call(M.split, function()
+        pcall(vim.fn.winrestview, { topline = target.startLn + 1 })
+    end)
+
+    local min_total = min_total_width()
+    local min_pane = math.max(1, math.floor(min_total / 2))
+
+    local w_left = pane_width(is_valid_win(M.win) and M.win or 0, cur, min_pane)
+    local w_right = pane_width(is_valid_win(M.split) and M.split or 0, target, min_pane)
+
+    local total_w = w_left + w_right
+    local total_h = math.max(cur_h, split_h)
+
+    local col, row = center(total_w, total_h)
+
+    ensure_pad(total_w, total_h, col, row)
+
+    place_primary_window(w_left, cur_h, col, row)
+
+    vim.api.nvim_win_set_config(M.split, {
         relative = "editor",
-        width = width,
-        height = height,
-        col = col,
+        width = w_right,
+        height = split_h,
+        col = col + w_left,
         row = row,
-        style = "minimal",
-        zindex = 50,
-        border = nil,
+        zindex = Z.content,
     })
 
-    -- Keep float highlights consistent with Normal (not NormalFloat)
-    vim.api.nvim_set_option_value(
-        "winhighlight", "Normal:Normal,NormalNC:Normal", { win = M.win }
-    )
+    refresh_backdrop_highlight()
 end
 
-function M.open(opts)
-    opts = opts or {}
-    local w = 80
-    local h = slide.slide_height() or 20
-    if opts.window then
-        w = opts.window.width or w
-        h = opts.window.height or h
+---Main layout entry: open or update according to current slide/split state
+local function open_or_update_layout()
+    ensure_backdrop()
+
+    local cur = slide.cur_slide()
+    local cur_h = slide.slide_height() or 20
+
+    -- Determine split target from params: split=FRAG
+    local frag = split_param_from(cur)
+    local target = frag and slide.fragment_slide(frag) or nil
+
+    if not target then
+        return layout_single(cur, cur_h)
+    else
+        return layout_split(cur, cur_h, target)
     end
-    open_slide_window(w, h)
 end
+
 
 function M.close()
     if is_valid_win(M.win) then vim.api.nvim_win_close(M.win, true) end
     M.win = nil
+    if is_valid_win(M.split) then vim.api.nvim_win_close(M.split, true) end
+    M.split = nil
+    M.split_frag = nil
     if is_valid_win(M.pad) then vim.api.nvim_win_close(M.pad, true) end
     M.pad = nil
     if is_valid_win(M.backdrop) then vim.api.nvim_win_close(M.backdrop, true) end
@@ -370,28 +528,9 @@ function M.close()
     M.pad_buf = nil
 end
 
-function M.set_layout(w, h)
+function M.set_layout()
     if not is_valid_win(M.win) then return end
-    local width = w or vim.api.nvim_win_get_width(M.win)
-    local height = h or vim.api.nvim_win_get_height(M.win)
-    local col = M.round((vim.o.columns - width) / 2)
-    local row = M.round((M.height() - height) / 2)
-    local cfg = vim.api.nvim_win_get_config(M.win)
-    local wcol = type(cfg.col) == "number" and cfg.col or cfg.col[false]
-    local wrow = type(cfg.row) == "number" and cfg.row or cfg.row[false]
-    if wrow ~= row or wcol ~= col or w or h then
-        vim.api.nvim_win_set_config(M.win, {
-            width = width,
-            height = height,
-            col = col,
-            row = row,
-            relative = "editor",
-            zindex = 50,
-        })
-    end
-
-    -- Ensure/update the padding frame according to current layout
-    ensure_pad(width, height, col, row)
+    open_or_update_layout()
 
     -- Also ensure the backdrop matches the editor size (e.g., after resize)
     if not is_valid_win(M.backdrop) then ensure_backdrop() end
@@ -402,27 +541,17 @@ function M.set_layout(w, h)
             height = M.height(),
             row = 0,
             col = 0,
-            zindex = 1,
+            zindex = Z.backdrop,
         })
         -- Reapply highlight each layout in case options changed
-        M._apply_backdrop_highlight()
-        vim.api.nvim_set_option_value(
-            "winhighlight",
-            "Normal:RazzleZenBackdrop,NormalNC:RazzleZenBackdrop",
-            { win = M.backdrop }
-        )
+        refresh_backdrop_highlight()
     end
 end
 
 -- Event wiring mirrors the previous implementation's contract
 vim.api.nvim_create_autocmd("User", {
     callback = function()
-        local height = slide.slide_height()
-        if not M.is_open() then
-            M.open({ window = { width = 80, height = height or 20 } })
-        else
-            M.set_layout(nil, height)
-        end
+        open_or_update_layout()
         motion.align_view()
     end,
     pattern = "RazzleSlideEnter",
@@ -434,10 +563,8 @@ local razzle_zen_group = vim.api.nvim_create_augroup(
 
 vim.api.nvim_create_autocmd({"VimResized"}, {
     callback = function()
-        if M.is_open() then
-            local height = slide.slide_height()
-                or vim.api.nvim_win_get_height(M.win)
-            M.set_layout(nil, height)
+        if is_valid_win(M.win) then
+            M.set_layout()
         end
     end,
     group = razzle_zen_group,
@@ -460,12 +587,7 @@ vim.api.nvim_create_autocmd("QuitPre", {
 vim.api.nvim_create_autocmd("ColorScheme", {
     callback = function()
         if is_valid_win(M.backdrop) then
-            M._apply_backdrop_highlight()
-            vim.api.nvim_set_option_value(
-                "winhighlight",
-                "Normal:RazzleZenBackdrop,NormalNC:RazzleZenBackdrop",
-                { win = M.backdrop }
-            )
+            refresh_backdrop_highlight()
         end
     end,
     group = razzle_zen_group,
@@ -473,19 +595,24 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 
 vim.api.nvim_create_autocmd("User", {
     callback = function()
-        M.open({ window = { height = slide.slide_height() or 20, width = 80 } })
+        open_or_update_layout()
         vim.opt_local.scrolloff = 0
         motion.align_view()
-        vim.api.nvim_create_autocmd({"SafeState"}, {
+        -- Scope SafeState updates to the content window to avoid firing
+        -- while focus briefly lands in the backdrop.
+        if M.safe_au then pcall(vim.api.nvim_del_autocmd, M.safe_au) end
+        M.safe_au = vim.api.nvim_create_autocmd({"SafeState"}, {
             callback = function()
-                vim.opt_local.scrolloff = 0
-                local height = slide.slide_height()
-                if height then
-                    M.set_layout(nil, height)
-                    motion.align_view()
+                if not (is_valid_win(M.win)
+                        and vim.api.nvim_get_current_win() == M.win) then
+                    return
                 end
+                vim.opt_local.scrolloff = 0
+                open_or_update_layout()
+                motion.align_view()
             end,
-            group = vim.api.nvim_create_augroup("Razzle", { clear = false})
+            group = razzle_zen_group,
+            desc = "Razzle: sync layout (SafeState, slide window only)",
         })
     end,
     pattern = "RazzleStart"

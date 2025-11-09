@@ -301,4 +301,55 @@ function M.slide_height()
     return visible + virt
 end
 
+---Compute the rendered width needed to display a slide's interior lines.
+---When a window id is provided, include UI columns (number/sign/fold)
+---using that window's textoff and evaluate width under that window's
+---display options. When win is nil, compute the intrinsic content width
+---only (no textoff), using the buffer's context.
+---Always include one extra column to give room for the cursor when
+---inserting after the longest line.
+---@param win number|nil window handle; if nil, exclude textoff
+---@param s Slide
+---@return number width
+function M.slide_content_width(win, s)
+    if not s then return 0 end
+
+    -- Interior range: [start, end) in 0-based indexing
+    local start_0 = s.startLn      -- first interior line (0-based)
+    local end_excl = s.endLn - 1   -- one past last interior line (0-based)
+    if end_excl <= start_0 then return 0 end
+
+    local function textoff_for(winid)
+        if not winid then return 0 end
+        local info = vim.fn.getwininfo(winid)
+        if type(info) == "table" and info[1] and info[1].textoff then
+            return tonumber(info[1].textoff) or 0
+        end
+        return 0
+    end
+
+    local maxw = 0
+    local function measure_lines()
+        local lines = vim.api.nvim_buf_get_lines(s.bufNu, start_0, end_excl, false)
+        for _, line in ipairs(lines) do
+            local w = vim.fn.strdisplaywidth(line)
+            if w > maxw then maxw = w end
+        end
+    end
+
+    if win then
+        -- Respect window-local display options
+        vim.api.nvim_win_call(win, function()
+            vim.api.nvim_buf_call(s.bufNu, measure_lines)
+        end)
+    else
+        -- Buffer context only (intrinsic width)
+        vim.api.nvim_buf_call(s.bufNu, measure_lines)
+    end
+
+    local toff = textoff_for(win)
+    -- Include a trailing column for the cursor when inserting at EOL
+    return toff + maxw + 1
+end
+
 return M
