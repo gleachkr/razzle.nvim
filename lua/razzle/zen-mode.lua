@@ -21,10 +21,14 @@ M.config = {
         horizontal = 0,
         vertical = 0,
     },
-    -- Minimum total width for the layout. For a single slide, this is the
-    -- minimum slide width. For a split, each pane has a minimum of half of
-    -- this value. If the longest line in a slide exceeds its minimum, that
-    -- pane expands to fit the content.
+    -- Gutter between primary and split panes (columns). When nil, defaults to
+    -- the same width as padding.horizontal.
+    gutter = nil,
+    -- Minimum total width including the gutter. For a single slide, this is
+    -- the minimum slide width. For a split, the two panes together have a
+    -- minimum of (min_width - gutter), so each pane has a minimum of half of
+    -- that. If the longest line in a slide exceeds its minimum, that pane
+    -- expands to fit the content.
     min_width = 80,
 }
 
@@ -78,7 +82,7 @@ function M.setup(opts)
     -- Reapply backdrop highlight if already open
     if is_valid_win(M.backdrop) then
         -- Recompute highlight and force winhighlight to use it
-        local _ = M._apply_backdrop_highlight and M._apply_backdrop_highlight()
+        M._apply_backdrop_highlight()
         vim.api.nvim_set_option_value(
             "winhighlight",
             "Normal:RazzleZenBackdrop,NormalNC:RazzleZenBackdrop",
@@ -279,9 +283,8 @@ end
 -- when padding is zero. The pad uses Normal background to simulate slide
 -- padding against the dimmed backdrop.
 local function ensure_pad(width, height, col, row)
-    local pad = M.config.padding or {}
-    local ph = math.max(0, tonumber(pad.horizontal or 0) or 0)
-    local pv = math.max(0, tonumber(pad.vertical or 0) or 0)
+    local ph = math.max(0, M.config.padding.horizontal or 0)
+    local pv = math.max(0, M.config.padding.vertical or 0)
 
     if ph == 0 and pv == 0 then
         if is_valid_win(M.pad) then
@@ -393,7 +396,7 @@ end
 ---Compute a sane minimum total width from config
 ---@return number
 local function min_total_width()
-    local mt = tonumber(M.config.min_width or 80) or 80
+    local mt = M.config.min_width or 80
     if mt < 1 then mt = 1 end
     return mt
 end
@@ -462,13 +465,18 @@ local function layout_split(cur, cur_h, target)
         pcall(vim.fn.winrestview, { topline = target.startLn + 1 })
     end)
 
+    -- Gutter defaults to padding.horizontal when not explicitly set
+    local gutter = math.max(0, M.config.gutter or M.config.padding.horizontal or 0)
+
     local min_total = min_total_width()
-    local min_pane = math.max(1, math.floor(min_total / 2))
+    -- Distribute the minimum across panes after accounting for the gutter
+    local min_content_total = math.max(0, min_total - gutter)
+    local min_pane = math.max(1, math.floor(min_content_total / 2))
 
     local w_left = pane_width(is_valid_win(M.win) and M.win or 0, cur, min_pane)
     local w_right = pane_width(is_valid_win(M.split) and M.split or 0, target, min_pane)
 
-    local total_w = w_left + w_right
+    local total_w = w_left + gutter + w_right
     local total_h = math.max(cur_h, split_h)
 
     local col, row = center(total_w, total_h)
@@ -481,7 +489,7 @@ local function layout_split(cur, cur_h, target)
         relative = "editor",
         width = w_right,
         height = split_h,
-        col = col + w_left,
+        col = col + w_left + gutter,
         row = row,
         zindex = Z.content,
     })

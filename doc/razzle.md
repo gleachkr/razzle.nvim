@@ -200,19 +200,19 @@ Centers the current slide in a floating window with a solid backdrop. The
 slide remains editable; clicking the backdrop does nothing and focus stays in
 the slide window. Responds to VimResized and ColorScheme changes.
 
-If the current slide marker has a `split=FRAG` parameter,
-zen-mode will draw a second, non-focusable floating window to the right that
-shows the slide with fragment id `FRAG`. The total minimum width defaults to
-80 columns. Each split pane has a minimum of half that. If a slide's
-longest interior line is wider than its minimum, that pane expands to fit its
-content. The padding frame expands to encompass both windows. Each pane uses
-the intrinsic height of its content; the overall layout height is the max of
-the two.
+If the current slide marker has a `split=FRAG` parameter, zen-mode will draw a 
+second, non-focusable floating window to the right that shows the slide with 
+fragment id `FRAG`. The panes are separated by a configurable gutter; by 
+default the gutter width equals the horizontal padding. The total minimum width 
+(including the gutter) defaults to 80 columns. Each split pane has a minimum of 
+half of that, minus the gutter. If a slide's longest interior line is wider 
+than its minimum, that pane expands to fit its content. Each pane uses the 
+intrinsic height of its content; the overall layout height is the max of the 
+two.
 
-Note: zen-mode focuses on layout. It does not toggle typical UI options like
-`number`, `relativenumber`, `signcolumn`, or `scrolloff`. Use
-|razzle.options| to set presentation defaults and per-slide overrides for
-those.
+zen-mode focuses on layout. It does not toggle typical UI options like
+`number`, `relativenumber`, `signcolumn`, or `scrolloff`. Use |razzle.options| 
+to set presentation defaults and per-slide overrides for those.
 
 #### Setup {#razzle.zen-mode.setup}
 
@@ -226,7 +226,9 @@ require("razzle.zen-mode").setup({
     horizontal = 4,    -- cells added left and right
     vertical   = 2,    -- cells added top and bottom
   },
-  min_width = 80,      -- minimum total width; split panes get half each
+  gutter = nil,        -- columns between panes; nil uses padding.horizontal
+  min_width = 80,      -- minimum total width incl. gutter; panes share
+                       -- (min_width - gutter) and get half each
 })
 ```
 
