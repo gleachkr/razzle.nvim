@@ -308,10 +308,10 @@ end
 ---only (no textoff), using the buffer's context.
 ---Always include one extra column to give room for the cursor when
 ---inserting after the longest line.
----@param win number|nil window handle; if nil, exclude textoff
 ---@param s Slide
+---@param win number|nil window handle; if nil, exclude textoff
 ---@return number width
-function M.slide_content_width(win, s)
+function M.slide_width(s, win)
     if not s then return 0 end
 
     -- Interior range: [start, end) in 0-based indexing

@@ -439,7 +439,7 @@ end
 ---@param min_pane number
 ---@return number
 local function pane_width(win, s, min_pane)
-    local intrinsic = slide.slide_content_width(win, s)
+    local intrinsic = slide.slide_width(s, win)
     return math.max(min_pane, intrinsic)
 end
 
@@ -447,7 +447,7 @@ end
 local function layout_single(cur, cur_h)
     ensure_split_for(nil)
     local min_total = min_total_width()
-    local content_w = slide.slide_content_width(is_valid_win(M.win) and M.win or 0, cur)
+    local content_w = slide.slide_width(cur, is_valid_win(M.win) and M.win or 0)
     local w = math.max(min_total, content_w)
     local col, row = center(w, cur_h)
     ensure_pad(w, cur_h, col, row)
