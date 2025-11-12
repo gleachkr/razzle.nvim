@@ -270,6 +270,8 @@ id="toc-modules-razzlemodules">Modules {#razzle.modules}</a>
 <ul>
 <li><a href="#motion-razzlemotion" id="toc-motion-razzlemotion">motion
 {#razzle.motion}</a></li>
+<li><a href="#select-razzleselect" id="toc-select-razzleselect">select
+{#razzle.select}</a></li>
 <li><a href="#maps-razzlemaps" id="toc-maps-razzlemaps">maps
 {#razzle.maps}</a></li>
 <li><a href="#conceal-razzleconceal"
@@ -321,9 +323,14 @@ class="sourceCode lua"><code class="sourceCode lua"><span id="cb1-1"><a href="#c
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">-- Optional: return to the deck after a terminal closes</span></span>
 <span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">-- require(&quot;razzle.term&quot;)</span></span>
 <span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">motion</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.motion&quot;</span><span class="op">)</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;]S&quot;</span><span class="op">,</span> <span class="va">motion</span><span class="op">.</span><span class="va">next_slide</span><span class="op">)</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;[S&quot;</span><span class="op">,</span> <span class="va">motion</span><span class="op">.</span><span class="va">prev_slide</span><span class="op">)</span></span></code></pre></div>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">-- Or just use ad-hoc keymaps</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">motion</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.motion&quot;</span><span class="op">)</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;]S&quot;</span><span class="op">,</span> <span class="va">motion</span><span class="op">.</span><span class="va">next_slide</span><span class="op">)</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;[S&quot;</span><span class="op">,</span> <span class="va">motion</span><span class="op">.</span><span class="va">prev_slide</span><span class="op">)</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">-- Quick picker: jump to a slide by fragment id</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">select</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.select&quot;</span><span class="op">)</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="va">vim</span><span class="op">.</span><span class="va">keymap</span><span class="op">.</span>set<span class="op">(</span><span class="st">&quot;n&quot;</span><span class="op">,</span> <span class="st">&quot;&lt;leader&gt;ss&quot;</span><span class="op">,</span> <span class="va">select</span><span class="op">.</span><span class="va">select_slide</span><span class="op">)</span></span></code></pre></div>
 <p>Slides are delimited by lines that contain <code>SLIDE</code> and an
 ending marker.</p>
 <h2 id="concepts-razzleconcepts">Concepts {#razzle.concepts}</h2>
@@ -340,22 +347,20 @@ markers with params and fragments {#razzle.markers}</h3>
 <p><code>SLIDE</code> lines can carry an optional query string and an
 optional fragment:</p>
 <pre><code>SLIDE?key=value&amp;k2=v2#my-fragment</code></pre>
-<ul>
-<li>Params become a table on the slide object, e.g.
-<code>slide.params.next</code>.</li>
-<li>Fragment becomes <code>slide.fragment</code> and is used by
-|razzle.motion.find|.</li>
-<li>If the current slide has <code>next</code> or <code>prev</code>
-params, they override linear navigation by naming the fragment of the
-target slide.</li>
-<li>When |razzle.options| is enabled, certain params are recognized as
-temporary option overrides for that slide and are restored when leaving:
+<p>Params become a table on the slide object, e.g.
+<code>slide.params.next</code>. Fragment becomes
+<code>slide.fragment</code> and is used by |razzle.motion.find_slide|.
+If the current slide has <code>next</code> or <code>prev</code> params,
+they override linear navigation by naming the fragment of the target
+slide.</p>
+<p>When |razzle.options| is enabled, certain params are recognized as
+temporary option overrides for that slide and are restored when
+leaving:</p>
 <ul>
 <li><code>colorscheme=name</code></li>
 <li><code>o.option=value</code> for global options</li>
 <li><code>wo.option=value</code> for window-local options</li>
 <li><code>bo.option=value</code> for buffer-local options</li>
-</ul></li>
 </ul>
 <p>Example:</p>
 <pre><code>SLIDE#intro
@@ -428,6 +433,12 @@ current slide.</li>
 <li>Slides are indexed per-buffer. A presentation start preloads all
 normal buffers so fragment-based jumps can cross buffers.</li>
 </ul>
+<h3 id="select-razzleselect">select {#razzle.select}</h3>
+<p>Pick a slide by fragment using vim.ui.select. Useful with a UI
+provider like dressing.nvim.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">select</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.select&quot;</span><span class="op">)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="va">select</span><span class="op">.</span>select_slide<span class="op">()</span> <span class="co">-- open picker; choose a fragment to jump</span></span></code></pre></div>
 <h3 id="maps-razzlemaps">maps {#razzle.maps}</h3>
 <p>Temporary keymaps that are active only during a presentation. Any
 existing mappings for those keys are saved and restored when the
@@ -439,12 +450,12 @@ the presentation mappings.</li>
 saved mappings.</li>
 </ul>
 <p>Setup example (shorthand by mode):</p>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode lua"><code class="sourceCode lua"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">motion</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.motion&quot;</span><span class="op">)</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.maps&quot;</span><span class="op">).</span>setup<span class="op">({</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="va">n</span> <span class="op">=</span> <span class="op">{</span> <span class="op">[</span><span class="st">&quot;]S&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="va">motion</span><span class="op">.</span><span class="va">next_slide</span><span class="op">,</span> <span class="op">[</span><span class="st">&quot;[S&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="va">motion</span><span class="op">.</span><span class="va">prev_slide</span> <span class="op">},</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">i</span> <span class="op">=</span> <span class="op">{</span> <span class="op">[</span><span class="st">&quot;&lt;Right&gt;&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="va">motion</span><span class="op">.</span><span class="va">next_slide</span><span class="op">,</span> <span class="op">[</span><span class="st">&quot;&lt;Left&gt;&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="va">motion</span><span class="op">.</span><span class="va">prev_slide</span> <span class="op">},</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">local</span> <span class="va">motion</span> <span class="op">=</span> <span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.motion&quot;</span><span class="op">)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.maps&quot;</span><span class="op">).</span>setup<span class="op">({</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="va">n</span> <span class="op">=</span> <span class="op">{</span> <span class="op">[</span><span class="st">&quot;]S&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="va">motion</span><span class="op">.</span><span class="va">next_slide</span><span class="op">,</span> <span class="op">[</span><span class="st">&quot;[S&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="va">motion</span><span class="op">.</span><span class="va">prev_slide</span> <span class="op">},</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">i</span> <span class="op">=</span> <span class="op">{</span> <span class="op">[</span><span class="st">&quot;&lt;Right&gt;&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="va">motion</span><span class="op">.</span><span class="va">next_slide</span><span class="op">,</span> <span class="op">[</span><span class="st">&quot;&lt;Left&gt;&quot;</span><span class="op">]</span> <span class="op">=</span> <span class="va">motion</span><span class="op">.</span><span class="va">prev_slide</span> <span class="op">},</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
 <h3 id="conceal-razzleconceal">conceal {#razzle.conceal}</h3>
 <p>Conceals lines containing slide markers while a presentation is
 active. Works with both regex syntax and Tree-sitter via a
@@ -484,20 +495,20 @@ like <code>number</code>, <code>relativenumber</code>,
 <code>signcolumn</code>, or <code>scrolloff</code>. Use |razzle.options|
 to set presentation defaults and per-slide overrides for those.</p>
 <h4 id="setup-razzlezen-modesetup">Setup {#razzle.zen-mode.setup}</h4>
-<div class="sourceCode" id="cb7"><pre
-class="sourceCode lua"><code class="sourceCode lua"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.zen-mode&quot;</span><span class="op">).</span>setup<span class="op">({</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="va">backdrop</span> <span class="op">=</span> <span class="op">{</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">blend</span> <span class="op">=</span> <span class="dv">30</span><span class="op">,</span>        <span class="co">-- 0..100: how much to blend toward target color</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">color</span> <span class="op">=</span> <span class="st">&quot;#000000&quot;</span><span class="op">,</span> <span class="co">-- target color to blend toward</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="va">padding</span> <span class="op">=</span> <span class="op">{</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="va">horizontal</span> <span class="op">=</span> <span class="dv">4</span><span class="op">,</span>    <span class="co">-- cells added left and right</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="va">vertical</span>   <span class="op">=</span> <span class="dv">2</span><span class="op">,</span>    <span class="co">-- cells added top and bottom</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  <span class="va">gutter</span> <span class="op">=</span> <span class="kw">nil</span><span class="op">,</span>        <span class="co">-- columns between panes; nil uses padding.horizontal</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="va">min_width</span> <span class="op">=</span> <span class="dv">80</span><span class="op">,</span>      <span class="co">-- minimum total width incl. gutter; panes share</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                       <span class="co">-- (min_width - gutter) and get half each</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.zen-mode&quot;</span><span class="op">).</span>setup<span class="op">({</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="va">backdrop</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="va">blend</span> <span class="op">=</span> <span class="dv">30</span><span class="op">,</span>        <span class="co">-- 0..100: how much to blend toward target color</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="va">color</span> <span class="op">=</span> <span class="st">&quot;#000000&quot;</span><span class="op">,</span> <span class="co">-- target color to blend toward</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="va">padding</span> <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="va">horizontal</span> <span class="op">=</span> <span class="dv">4</span><span class="op">,</span>    <span class="co">-- cells added left and right</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="va">vertical</span>   <span class="op">=</span> <span class="dv">2</span><span class="op">,</span>    <span class="co">-- cells added top and bottom</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">},</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="va">gutter</span> <span class="op">=</span> <span class="kw">nil</span><span class="op">,</span>        <span class="co">-- columns between panes; nil uses padding.horizontal</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="va">min_width</span> <span class="op">=</span> <span class="dv">80</span><span class="op">,</span>      <span class="co">-- minimum total width incl. gutter; panes share</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>                       <span class="co">-- (min_width - gutter) and get half each</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
 <h3 id="term-optional-razzleterm">term (optional) {#razzle.term}</h3>
 <p>Restores focus to the current slide when a terminal job closes.</p>
 <ul>
@@ -518,22 +529,22 @@ default), then applies the new slide’s overrides.</li>
 <li>On |RazzleEnd|: restores the original values.</li>
 </ul>
 <p>Setup example:</p>
-<div class="sourceCode" id="cb8"><pre
-class="sourceCode lua"><code class="sourceCode lua"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.options&quot;</span><span class="op">).</span>setup<span class="op">({</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="va">o</span>  <span class="op">=</span> <span class="op">{</span> <span class="va">number</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span> <span class="va">cursorline</span> <span class="op">=</span> <span class="kw">false</span> <span class="op">},</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="va">wo</span> <span class="op">=</span> <span class="op">{</span> <span class="va">signcolumn</span> <span class="op">=</span> <span class="st">&quot;no&quot;</span> <span class="op">},</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">bo</span> <span class="op">=</span> <span class="op">{},</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- colorscheme = &quot;habamax&quot;,</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.options&quot;</span><span class="op">).</span>setup<span class="op">({</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="va">o</span>  <span class="op">=</span> <span class="op">{</span> <span class="va">number</span> <span class="op">=</span> <span class="kw">false</span><span class="op">,</span> <span class="va">cursorline</span> <span class="op">=</span> <span class="kw">false</span> <span class="op">},</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="va">wo</span> <span class="op">=</span> <span class="op">{</span> <span class="va">signcolumn</span> <span class="op">=</span> <span class="st">&quot;no&quot;</span> <span class="op">},</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="va">bo</span> <span class="op">=</span> <span class="op">{},</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- colorscheme = &quot;habamax&quot;,</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="op">})</span></span></code></pre></div>
 <p>Per-slide example:</p>
 <pre><code>SLIDE?colorscheme=elflord&amp;wo.signcolumn=yes&amp;o.cursorline=false#intro</code></pre>
 <h3 id="html-experimental-razzlehtml">html (experimental)
 {#razzle.html}</h3>
 <p>Exports slides to HTML using the <code>:TOhtml</code> runtime
 (requires <code>tohtml</code>).</p>
-<div class="sourceCode" id="cb10"><pre
-class="sourceCode lua"><code class="sourceCode lua"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.html&quot;</span><span class="op">).</span>slidesToSimpleHTML<span class="op">()</span>  <span class="co">-- SlideN.html per slide</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.html&quot;</span><span class="op">).</span>slidesToSingleHTML<span class="op">()</span>  <span class="co">-- Slides.html with &lt;section&gt;s</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.html&quot;</span><span class="op">).</span>slidesToSimpleHTML<span class="op">()</span>  <span class="co">-- SlideN.html per slide</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">require</span><span class="op">(</span><span class="st">&quot;razzle.html&quot;</span><span class="op">).</span>slidesToSingleHTML<span class="op">()</span>  <span class="co">-- Slides.html with &lt;section&gt;s</span></span></code></pre></div>
 <h2 id="slide-detection-details-razzleslides">Slide detection details
 {#razzle.slides}</h2>
 <p>A slide begins at a line that contains <code>SLIDE</code> and ends at
