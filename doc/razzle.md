@@ -27,9 +27,14 @@ require("razzle.maps").setup({
 -- Optional: return to the deck after a terminal closes
 -- require("razzle.term")
 
+-- Or just use ad-hoc keymaps
 local motion = require("razzle.motion")
 vim.keymap.set("n", "]S", motion.next_slide)
 vim.keymap.set("n", "[S", motion.prev_slide)
+
+-- Quick picker: jump to a slide by fragment id
+local select = require("razzle.select")
+vim.keymap.set("n", "<leader>ss", select.select_slide)
 ```
 
 Slides are delimited by lines that contain `SLIDE` and an ending marker.
@@ -52,12 +57,13 @@ presentation.
 SLIDE?key=value&k2=v2#my-fragment
 ```
 
-- Params become a table on the slide object, e.g. `slide.params.next`.
-- Fragment becomes `slide.fragment` and is used by |razzle.motion.find|.
-- If the current slide has `next` or `prev` params, they override linear
-  navigation by naming the fragment of the target slide.
-- When |razzle.options| is enabled, certain params are recognized as
-  temporary option overrides for that slide and are restored when leaving:
+Params become a table on the slide object, e.g. `slide.params.next`.
+Fragment becomes `slide.fragment` and is used by |razzle.motion.find_slide|.
+If the current slide has `next` or `prev` params, they override linear
+navigation by naming the fragment of the target slide. 
+
+When |razzle.options| is enabled, certain params are recognized as temporary 
+option overrides for that slide and are restored when leaving:
   - `colorscheme=name`
   - `o.option=value`   for global options
   - `wo.option=value`  for window-local options
@@ -154,6 +160,16 @@ Notes:
   current slide.
 - Slides are indexed per-buffer. A presentation start preloads all normal
   buffers so fragment-based jumps can cross buffers.
+
+### select {#razzle.select}
+
+Pick a slide by fragment using vim.ui.select. Useful with a UI provider
+like dressing.nvim.
+
+```lua
+local select = require("razzle.select")
+select.select_slide() -- open picker; choose a fragment to jump
+```
 
 ### maps {#razzle.maps}
 

@@ -36,6 +36,7 @@ Available modules:
 | lock     | Restricts cursor movement to within slides |
 | zen-mode | Built-in zen view: centers current slide in a floating window with a solid backdrop |
 | motion   | Provides slide navigation functions |
+| select   | Quick picker: jump to a slide by fragment via vim.ui.select |
 | maps     | Temporary keymaps during a presentation  |
 | term     | Jump to the terminal during a presentation  |
 | options  | Temporary (including per-slide) options during a presentation  |
@@ -54,8 +55,9 @@ require("razzle.options").setup({
     o = { background = "light" }
 })
 local motion = require("razzle.motion")
+local select = require("razzle.select")
 require("razzle.maps").setup({
-  n = { ["]S"] = motion.next_slide, ["[S"] = motion.prev_slide },
+  n = { ["<leader>ss"] = select.select_slide, ["]S"] = motion.next_slide, ["[S"] = motion.prev_slide },
   i = { ["<Right>"] = motion.next_slide, ["<Left>"] = motion.prev_slide },
 })
 ```
