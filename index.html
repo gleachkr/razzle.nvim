@@ -513,9 +513,13 @@ class="sourceCode lua"><code class="sourceCode lua"><span id="cb8-1"><a href="#c
 <p>Restores focus to the current slide when a terminal job closes.</p>
 <ul>
 <li>On |RazzleStart|: remembers the starting slide and updates on
-|RazzleSlideEnter|.</li>
+|RazzleSlideEnter|. Temporarily disables the built-in
+<code>nvim.terminal</code> TermClose handler that would otherwise close
+the terminal window.</li>
 <li>On <code>TermClose</code>: jumps back to the last seen slide
 interior.</li>
+<li>On |RazzleEnd|: restores the original <code>nvim.terminal</code>
+autocommands.</li>
 </ul>
 <h3 id="options-razzleoptions">options {#razzle.options}</h3>
 <p>Manage presentation-wide defaults and per-slide overrides for
