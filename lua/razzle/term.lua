@@ -65,7 +65,7 @@ vim.api.nvim_create_autocmd("User", {
                             callback = ac.callback,
                             command = ac.command,
                             once = ac.once,
-                            nested = ac.nested,
+                            -- nested isn't saved by nvim_get_autocmds
                         }
                         -- ac.event is a string or list; nvim accepts both.
                         pcall(vim.api.nvim_create_autocmd, ac.event, opts)
