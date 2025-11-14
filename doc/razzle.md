@@ -253,8 +253,11 @@ require("razzle.zen-mode").setup({
 Restores focus to the current slide when a terminal job closes.
 
 - On |RazzleStart|: remembers the starting slide and updates on
-  |RazzleSlideEnter|.
+  |RazzleSlideEnter|. Temporarily disables the built-in
+  `nvim.terminal` TermClose handler that would otherwise close the
+  terminal window.
 - On `TermClose`: jumps back to the last seen slide interior.
+- On |RazzleEnd|: restores the original `nvim.terminal` autocommands.
 
 ### options {#razzle.options}
 
