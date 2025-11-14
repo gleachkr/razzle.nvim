@@ -604,7 +604,7 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 vim.api.nvim_create_autocmd("User", {
     callback = function()
         open_or_update_layout()
-        vim.opt_local.scrolloff = 0
+        vim.opt.scrolloff = 0
         motion.align_view()
         -- Scope SafeState updates to the content window to avoid firing
         -- while focus briefly lands in the backdrop.
@@ -615,9 +615,7 @@ vim.api.nvim_create_autocmd("User", {
                         and vim.api.nvim_get_current_win() == M.win) then
                     return
                 end
-                vim.opt_local.scrolloff = 0
                 open_or_update_layout()
-                motion.align_view()
             end,
             group = razzle_zen_group,
             desc = "Razzle: sync layout (SafeState, slide window only)",
