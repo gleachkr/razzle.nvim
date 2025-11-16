@@ -503,6 +503,10 @@ local function open_or_update_layout()
 
     local cur = slide.cur_slide()
     local cur_h = slide.slide_height() or 20
+    if cur then
+        -- Ensure that the lower bound is the top visible line
+        vim.fn.winrestview({ topline = cur.startLn + 1 })
+    end
 
     -- Determine split target from params: split=FRAG
     local frag = split_param_from(cur)

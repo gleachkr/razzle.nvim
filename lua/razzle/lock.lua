@@ -13,7 +13,7 @@ local function restrict_cursor_movement()
     local upper_bound = vim.w.razzle_scroll_bounds[2]
 
     -- Ensure that the lower bound is the top visible line
-    vim.fn.winrestview({ topline = lower_bound })
+    -- vim.fn.winrestview({ topline = lower_bound })
 
     if current_line < lower_bound then
         vim.fn.setpos(".", {0, lower_bound, 1, 0})
