@@ -559,58 +559,13 @@ function M.set_layout()
 end
 
 -- Event wiring mirrors the previous implementation's contract
-vim.api.nvim_create_autocmd("User", {
-    callback = function()
-        open_or_update_layout()
-        motion.align_view()
-    end,
-    pattern = "RazzleSlideEnter",
-})
-
-local razzle_zen_group = vim.api.nvim_create_augroup(
-    "RazzleZen", { clear = true }
-)
-
-vim.api.nvim_create_autocmd({"VimResized"}, {
-    callback = function()
-        if is_valid_win(M.win) then
-            M.set_layout()
-        end
-    end,
-    group = razzle_zen_group,
-})
-
--- End the presentation instead of just closing the slide float when the
--- user executes :q in the zen window. Using QuitPre ensures we react before
--- Neovim actually closes the window, so backdrop/pad are cleaned up.
-vim.api.nvim_create_autocmd("QuitPre", {
-    callback = function()
-        if is_valid_win(M.win)
-           and vim.api.nvim_get_current_win() == M.win then
-                require("razzle").end_presentation()
-        end
-    end,
-    group = razzle_zen_group,
-})
-
--- If colorscheme changes globally, update backdrop highlight when open
-vim.api.nvim_create_autocmd("ColorScheme", {
-    callback = function()
-        if is_valid_win(M.backdrop) then
-            refresh_backdrop_highlight()
-        end
-    end,
-    group = razzle_zen_group,
-})
 
 vim.api.nvim_create_autocmd("User", {
     callback = function()
+        local razzle_group = vim.api.nvim_create_augroup("Razzle", { clear = false})
         vim.opt.scrolloff = 0
         open_or_update_layout()
-        -- Scope SafeState updates to the content window to avoid firing
-        -- while focus briefly lands in the backdrop.
-        if M.safe_au then pcall(vim.api.nvim_del_autocmd, M.safe_au) end
-        M.safe_au = vim.api.nvim_create_autocmd({"SafeState"}, {
+        vim.api.nvim_create_autocmd({"SafeState"}, {
             callback = function()
                 if not (is_valid_win(M.win)
                         and vim.api.nvim_get_current_win() == M.win) then
@@ -618,18 +573,56 @@ vim.api.nvim_create_autocmd("User", {
                 end
                 open_or_update_layout()
             end,
-            group = razzle_zen_group,
+            group = razzle_group,
             desc = "Razzle: sync layout (SafeState, slide window only)",
         })
 
-        M.safe_au = vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
+        vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
             callback = function()
                 -- motion.align_view() is too noisy here when it fires a warning
                 local cur = slide.cur_slide() -- the line number of the current slide
                 if cur then pcall(vim.fn.winrestview, { topline = cur.startLn + 1 }) end
             end,
-            group = razzle_zen_group,
+            group = razzle_group,
             desc = "Razzle: align view to slide interior",
+        })
+        vim.api.nvim_create_autocmd("User", {
+            callback = function()
+                open_or_update_layout()
+                motion.align_view()
+            end,
+            pattern = "RazzleSlideEnter",
+        })
+
+        vim.api.nvim_create_autocmd({"VimResized"}, {
+            callback = function()
+                if is_valid_win(M.win) then
+                    M.set_layout()
+                end
+            end,
+            group = razzle_group,
+        })
+
+        -- End the presentation instead of just closing the slide float when the
+        -- user executes :q in the zen window. Using QuitPre ensures we react before
+        -- Neovim actually closes the window, so backdrop/pad are cleaned up.
+        vim.api.nvim_create_autocmd("QuitPre", {
+            callback = function()
+                if is_valid_win(M.win)
+                   and vim.api.nvim_get_current_win() == M.win then
+                        require("razzle").end_presentation()
+                end
+            end,
+            group = razzle_group,
+        })
+        -- If colorscheme changes globally, update backdrop highlight when open
+        vim.api.nvim_create_autocmd("ColorScheme", {
+            callback = function()
+                if is_valid_win(M.backdrop) then
+                    refresh_backdrop_highlight()
+                end
+            end,
+            group = razzle_group,
         })
     end,
     pattern = "RazzleStart"

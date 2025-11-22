@@ -91,19 +91,20 @@ vim.api.nvim_create_autocmd("User", {
 vim.api.nvim_create_autocmd("User", {
     callback = function()
         vim.opt.scrolloff = 0
+        local razzle_group = vim.api.nvim_create_augroup("Razzle", { clear = false})
         M.lock_scroll()
         vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
             callback = M.lock_scroll,
-            group = vim.api.nvim_create_augroup("Razzle", { clear = false})
+            group = razzle_group,
         })
         -- Create an autocommand to restrict cursor movement on CursorMoved and CursorMovedI events
         vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
             callback = restrict_cursor_movement,
-            group = vim.api.nvim_create_augroup("Razzle", { clear = false}),
+            group = razzle_group,
         })
         vim.api.nvim_create_autocmd({"WinEnter"}, {
             callback = restrict_cursor_window,
-            group = vim.api.nvim_create_augroup("Razzle", { clear = false}),
+            group = razzle_group,
         })
     end,
     pattern = "RazzleStart"
