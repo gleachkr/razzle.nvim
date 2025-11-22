@@ -504,7 +504,7 @@ local function open_or_update_layout()
 
     local cur = slide.cur_slide()
     local cur_h = slide.slide_height() or 20
-    motion.align_view()
+    if cur then pcall(vim.fn.winrestview, { topline = cur.startLn + 1 }) end
 
     -- Determine split target from params: split=FRAG
     local frag = split_param_from(cur)
@@ -626,9 +626,7 @@ vim.api.nvim_create_autocmd("User", {
             callback = function()
                 -- motion.align_view() is too noisy here when it fires a warning
                 local cur = slide.cur_slide() -- the line number of the current slide
-                if cur then
-                    pcall(vim.fn.winrestview, { topline = cur.startLn + 1 })
-                end
+                if cur then pcall(vim.fn.winrestview, { topline = cur.startLn + 1 }) end
             end,
             group = razzle_zen_group,
             desc = "Razzle: align view to slide interior",
