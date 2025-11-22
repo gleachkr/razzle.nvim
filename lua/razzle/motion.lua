@@ -50,10 +50,6 @@ end
 function M.align_view()
     local cur = slide.cur_slide() -- the line number of the current slide
     if cur then
-        local pos = vim.fn.getpos('.')
-        if pos[2] <= cur.startLn then pos[2] = cur.startLn + 1 end -- Adjust pos to make sure we're in the slide interior
-        if pos[2] >= cur.endLn then pos[2] = cur.endLn - 1 end
-        vim.fn.setpos('.', pos)
         vim.fn.winrestview({ topline = cur.startLn + 1 }) -- Adjusts the window view to the specified line
     else
         vim.notify("Can't align view to current slide, no current slide found", vim.log.levels.ERROR)
