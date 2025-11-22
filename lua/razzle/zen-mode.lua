@@ -377,7 +377,9 @@ local function ensure_split_for(target)
     end
 
     -- Ensure view starts at the interior
-    motion.align_view()
+    vim.api.nvim_win_call(M.split, function()
+        pcall(vim.fn.winrestview, { topline = target.startLn + 1 })
+    end)
 
     M.split_frag = target.fragment -- may be nil if not set on target
 end
@@ -460,7 +462,9 @@ local function layout_split(cur, cur_h, target)
     local split_h = height_for_slide_in_win(M.split, target) or 1
 
     -- Align view to interior in split again (in case folds opened)
-    motion.align_view()
+    vim.api.nvim_win_call(M.split, function()
+        pcall(vim.fn.winrestview, { topline = target.startLn + 1 })
+    end)
 
     -- Gutter defaults to padding.horizontal when not explicitly set
     local gutter = math.max(0, M.config.gutter or M.config.padding.horizontal or 0)
@@ -601,9 +605,8 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 
 vim.api.nvim_create_autocmd("User", {
     callback = function()
-        open_or_update_layout()
         vim.opt.scrolloff = 0
-        motion.align_view()
+        open_or_update_layout()
         -- Scope SafeState updates to the content window to avoid firing
         -- while focus briefly lands in the backdrop.
         if M.safe_au then pcall(vim.api.nvim_del_autocmd, M.safe_au) end
@@ -624,7 +627,7 @@ vim.api.nvim_create_autocmd("User", {
                 -- motion.align_view() is too noisy here when it fires a warning
                 local cur = slide.cur_slide() -- the line number of the current slide
                 if cur then
-                    vim.fn.winrestview({ topline = cur.startLn + 1 })
+                    pcall(vim.fn.winrestview, { topline = cur.startLn + 1 })
                 end
             end,
             group = razzle_zen_group,
