@@ -377,9 +377,7 @@ local function ensure_split_for(target)
     end
 
     -- Ensure view starts at the interior
-    vim.api.nvim_win_call(M.split, function()
-        pcall(vim.fn.winrestview, { topline = target.startLn + 1 })
-    end)
+    motion.align_view()
 
     M.split_frag = target.fragment -- may be nil if not set on target
 end
@@ -460,10 +458,9 @@ local function layout_split(cur, cur_h, target)
     ensure_split_for(target)
 
     local split_h = height_for_slide_in_win(M.split, target) or 1
+
     -- Align view to interior in split again (in case folds opened)
-    vim.api.nvim_win_call(M.split, function()
-        pcall(vim.fn.winrestview, { topline = target.startLn + 1 })
-    end)
+    motion.align_view()
 
     -- Gutter defaults to padding.horizontal when not explicitly set
     local gutter = math.max(0, M.config.gutter or M.config.padding.horizontal or 0)
@@ -503,10 +500,7 @@ local function open_or_update_layout()
 
     local cur = slide.cur_slide()
     local cur_h = slide.slide_height() or 20
-    if cur then
-        -- Ensure that the lower bound is the top visible line
-        vim.fn.winrestview({ topline = cur.startLn + 1 })
-    end
+    motion.align_view()
 
     -- Determine split target from params: split=FRAG
     local frag = split_param_from(cur)
@@ -623,6 +617,18 @@ vim.api.nvim_create_autocmd("User", {
             end,
             group = razzle_zen_group,
             desc = "Razzle: sync layout (SafeState, slide window only)",
+        })
+
+        M.safe_au = vim.api.nvim_create_autocmd({"CursorMoved", "CursorMovedI"}, {
+            callback = function()
+                -- motion.align_view() is too noisy here when it fires a warning
+                local cur = slide.cur_slide() -- the line number of the current slide
+                if cur then
+                    vim.fn.winrestview({ topline = cur.startLn + 1 })
+                end
+            end,
+            group = razzle_zen_group,
+            desc = "Razzle: align view to slide interior",
         })
     end,
     pattern = "RazzleStart"
