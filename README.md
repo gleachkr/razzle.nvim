@@ -34,6 +34,7 @@ Available modules:
 | -------- | --------------------------------------------------------------------- |
 | conceal  | Conceals lines containing slide markers while presentation is active |
 | lock     | Restricts cursor movement to within slides |
+| peek     | Inline peek view: show another slide as virtual lines below the current slide |
 | zen-mode | Built-in zen view: centers current slide in a floating window with a solid backdrop |
 | motion   | Provides slide navigation functions |
 | select   | Quick picker: jump to a slide by fragment via vim.ui.select |
@@ -49,6 +50,7 @@ Here's an example of some event handling for a razzle presentation:
 require("razzle")
 require("razzle.lock")
 require("razzle.conceal")
+require("razzle.peek")
 require("razzle.zen-mode")
 require("razzle.term")
 require("razzle.options").setup({

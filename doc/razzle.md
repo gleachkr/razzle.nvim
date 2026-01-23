@@ -11,6 +11,7 @@ require("razzle").start_presentation()
 -- Optional helpers
 require("razzle.lock")
 require("razzle.conceal")
+require("razzle.peek")
 require("razzle.zen-mode")
 -- Optional presentation-wide options and per-slide overrides
 require("razzle.options").setup({
@@ -121,8 +122,8 @@ Payload shape (table fields are a stable contract):
 
 Begin a presentation in the current window. The cursor must be inside a slide,
 otherwise you will see an error. Moves the cursor to the first line of the
-slide interior. Triggers |RazzleStart| and then |RazzleSlideEnter| for the
-starting slide.
+slide interior. Triggers |RazzleStart| and then |RazzleSlideEnter| events for 
+the starting slide.
 
 ### :RazzleEnd {#razzle.cmd.end}
 
@@ -209,6 +210,46 @@ window.
   and installs handlers to maintain bounds and view.
 - On |RazzleSlideEnter|: recomputes bounds for the entered slide.
 - On |RazzleEnd|: removes bounds.
+
+### peek {#razzle.peek}
+
+Inline peek view driven by a `peek=FRAG` slide param.
+
+If the current slide marker has a `peek=FRAG` parameter, peek renders the
+interior of the slide with fragment id `FRAG` as virtual lines below the last
+line of the current slide. This gives you a lightweight "context pane" even
+when you are not using |razzle.zen-mode|.
+
+Example:
+
+```
+SLIDE?peek=appendix#main
+... main content ...
+FIN
+
+SLIDE#appendix
+... extra context ...
+FIN
+```
+
+Setup (optional):
+
+```lua
+require("razzle.peek").setup({
+  -- Param name on SLIDE markers: SLIDE?peek=frag
+  param = 'peek',
+  -- Highlight group for peeked virtual lines.
+  hl = 'RazzlePeek',
+  -- Insert a blank virtual line before the peeked content.
+  blank_line = true,
+  -- Optional header. When true, show a small label line based on frag
+  header = false,
+  -- Prefix added to each rendered peek line (and header).
+  prefix = '',
+  -- When set, limit the number of rendered lines.
+  max_lines = nil,
+})
+```
 
 ### zen-mode {#razzle.zen-mode}
 
